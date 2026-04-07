@@ -19,7 +19,7 @@
 // ============================================================
 
 // ═══ CONFIGURARE ═══
-const SECRET_TOKEN = 'MA-2026-CHANGE-ME';  // ← SCHIMBA ASTA cu un token propriu!
+const SECRET_TOKEN = 'CHANGE-ME-TO-YOUR-OWN-SECRET';  // ⚠️ OBLIGATORIU: Schimba cu un token unic inainte de deploy!
 
 // Lunile relevante (doar Microalpha, de la Feb 2026)
 const RELEVANT_MONTHS = [

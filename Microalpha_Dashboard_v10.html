@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Microalpha AI — Dashboard v9</title>
+<title>Microalpha AI — Dashboard v10</title>
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -98,8 +98,9 @@ const fmt=(n,d=0)=>{if(n==null||isNaN(n))return'0';const a=Math.abs(n);if(a>=1e6
 const ff=(n)=>{if(n==null||isNaN(n))return'0';return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')};
 const pct=(v,t)=>t===0?'0.0':((v/t)*100).toFixed(1);
 const gw=(c,p)=>p===0?(c>0?'100.0':'0.0'):(((c-p)/p)*100).toFixed(1);
-const AUTH_USER='admin';
-const AUTH_PASS='MicroAlpha2026!';
+// Credentials are set on first login and stored locally — never hardcoded in source
+const getAuthCreds=()=>{try{const c=JSON.parse(localStorage.getItem('microalpha_auth_creds')||'null');return c||null}catch(e){return null}};
+const setAuthCreds=(u,p)=>{localStorage.setItem('microalpha_auth_creds',JSON.stringify({u,p}))};
 const DEFAULT_DATA={months:[],bankStatement:[],renewals:{total:0,nextMonthDue:0,byStatus:{Pending:0,Renewed:0,Churned:0},upcomingMonth:{}},sources:[{id:'gs',name:'Google Sheets (Incasari)',type:'google-sheets',active:true,deletable:false}]};
 function computeRenewals(data){
   if(!data.months||data.months.length===0)return{total:0,nextMonthDue:0,byStatus:{Pending:0,Renewed:0,Churned:0},clients:[]};
@@ -131,10 +132,10 @@ function computeRenewals(data){
 function integrateExpenses(data){
   if(!data.months||data.months.length===0||!data.bankStatement||data.bankStatement.length===0)return data;
   const updated={...data,months:data.months.map(m=>{
-    const mIdx=m.month;const expenses={total:0,breakdown:{}};
+    const mIdx=m.month;const mYear=m.year||new Date().getFullYear();const expenses={total:0,breakdown:{}};
     data.bankStatement.filter(t=>!t.excluded&&t.amount<0).forEach(t=>{
       const td=new Date(t.date);
-      if(td.getMonth()+1===mIdx){
+      if(td.getMonth()+1===mIdx&&td.getFullYear()===mYear){
         const amt=Math.abs(t.amount);
         const cat=t.expenseCategory||t.category||'Necategorizat';
         expenses.total+=amt;expenses.breakdown[cat]=(expenses.breakdown[cat]||0)+amt;
@@ -143,7 +144,7 @@ function integrateExpenses(data){
     let capitalIn=0;
     data.bankStatement.filter(t=>!t.excluded&&t.amount>0&&(t.incomeType==='Capital Social'||t.category==='Capital Social')).forEach(t=>{
       const td=new Date(t.date);
-      if(td.getMonth()+1===mIdx)capitalIn+=t.amount;
+      if(td.getMonth()+1===mIdx&&td.getFullYear()===mYear)capitalIn+=t.amount;
     });
     return{...m,expenses,capitalInflows:capitalIn,cashInflows:m.totalIncasari+capitalIn,cashBalance:m.totalIncasari+capitalIn-expenses.total};
   })};
@@ -168,30 +169,7 @@ async function fetchAppsScript(scriptUrl,token){
   })).filter(m=>m.totalIncasari>0||m.transactions.length>0);
   return{months,renewals:DEFAULT_DATA.renewals,bankStatement:DEFAULT_DATA.bankStatement,meta:json.meta};
 }
-function computeClientStatus(data){
-  const clients={};
-  data.months.forEach(m=>{
-    m.transactions.forEach(t=>{
-      if(!clients[t.client])clients[t.client]={name:t.client,net:0,type:null,firstPositive:null,lastPositive:null,transactions:[]};
-      clients[t.client].transactions.push({...t,monthNum:m.month});
-      if(t.amount>0){clients[t.client].net+=t.amount;if(!clients[t.client].firstPositive)clients[t.client].firstPositive=t.date;clients[t.client].lastPositive=t.date;}
-      else clients[t.client].net+=t.amount;
-      if(t.service.includes('Anual'))clients[t.client].type='annual';
-      else if(t.service.includes('Lunar'))clients[t.client].type='monthly';
-    });
-  });
-  const now=new Date();
-  return Object.values(clients).map(c=>{
-    c.net=Math.max(0,c.net);
-    const daysSinceLastPos=c.lastPositive?Math.floor((now-new Date(c.lastPositive))/86400000):Infinity;
-    const validityDays=c.type==='annual'?365:30;
-    if(c.net>0&&daysSinceLastPos<=validityDays)c.status='active';
-    else if(c.net===0&&c.transactions.filter(t=>t.amount>0).length===c.transactions.filter(t=>t.amount<0).length)c.status='churn_explicit';
-    else if(c.net>0&&daysSinceLastPos>validityDays)c.status='churn_passive';
-    else c.status='active';
-    return c;
-  });
-}
+// computeClientStatus removed — buildSubscriberList is now the single source of truth for client status
 function computeAudit(data){
   if(!data.months||data.months.length===0)return {};
   const A={};const allTx=data.months.flatMap(m=>m.transactions.map(t=>({...t,monthName:m.name,monthNum:m.month})));
@@ -215,11 +193,11 @@ function computeAudit(data){
   const rg=prev?parseFloat(gw(latest.totalIncasari,prev.totalIncasari)):null;
   A.revenueGrowth={id:'revenueGrowth',label:'Revenue Growth',value:rg,computedValue:rg,match:true,formula:'(Rev_curent - Rev_anterior) / Rev_anterior x 100',formulaDetail:prev?`(${ff(latest.totalIncasari)} - ${ff(prev.totalIncasari)}) / ${ff(prev.totalIncasari)} = ${rg}%`:'N/A',breakdown:data.months.map(m=>({month:m.name,revenue:m.totalIncasari})),transactions:[],source:'Calculat'};
   A.renewals={id:'renewals',label:'Contracte',value:data.renewals.total,computedValue:data.renewals.total,match:true,formula:'COUNT(Renewals)',formulaDetail:`Total: ${data.renewals.total}`,breakdown:[data.renewals.byStatus],transactions:[],source:'P&L Renewals'};
-  const clientStatus=computeClientStatus(data);
-  const totalClients=clientStatus.length;
-  const churnedClients=clientStatus.filter(c=>c.status.includes('churn')).length;
+  const subList=buildSubscriberList(data);
+  const totalClients=subList.length;
+  const churnedClients=subList.filter(c=>c.status==='Churn').length;
   const churnRate=totalClients>0?(churnedClients/totalClients)*100:0;
-  A.churnRate={id:'churnRate',label:'Churn Rate',value:churnRate,computedValue:churnRate,match:true,formula:'Churned / Total x 100',formulaDetail:`${churnedClients} / ${totalClients} = ${churnRate.toFixed(1)}%`,breakdown:clientStatus.map(c=>({client:c.name,status:c.status,net:c.net})),transactions:allTx,source:'Client Status'};
+  A.churnRate={id:'churnRate',label:'Churn Rate',value:churnRate,computedValue:churnRate,match:true,formula:'Churned / Total x 100',formulaDetail:`${churnedClients} / ${totalClients} = ${churnRate.toFixed(1)}%`,breakdown:subList.map(c=>({client:c.client,status:c.status,net:c.totalNet})),transactions:allTx,source:'buildSubscriberList (source of truth)'};
   const mgrs={};allTx.forEach(t=>{const m=t.manager||'N/A';if(!mgrs[m])mgrs[m]={name:m,deals:0,revenue:0,annual:0,monthly:0};mgrs[m].deals++;mgrs[m].revenue+=t.amount;if(t.type==='annual')mgrs[m].annual++;if(t.type==='monthly')mgrs[m].monthly++});
   A.managers={id:'managers',label:'Sales',value:Object.keys(mgrs).length,computedValue:Object.keys(mgrs).length,match:true,formula:'GROUP BY manager',formulaDetail:Object.values(mgrs).sort((a,b)=>b.revenue-a.revenue).map(m=>`${m.name}: ${m.deals} deals, ${ff(m.revenue)} RON`).join('\n'),breakdown:Object.values(mgrs).sort((a,b)=>b.revenue-a.revenue),transactions:allTx,source:'Manager'};
   const ec={};data.bankStatement.filter(t=>t.amount<0&&!t.excluded).forEach(t=>{ec[t.category]=(ec[t.category]||0)+Math.abs(t.amount)});
@@ -261,10 +239,17 @@ function computeAudit(data){
 }
 function LoginScreen({onLogin}){
   const[user,setUser]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[loading,setLoading]=useState(false);
+  const creds=getAuthCreds();
+  const isFirstTime=!creds;
   const submit=(e)=>{e.preventDefault();setLoading(true);setErr('');
     setTimeout(()=>{
-      if(user===AUTH_USER&&pass===AUTH_PASS){onLogin(true)}
-      else{setErr('Utilizator sau parola incorecta');setLoading(false)}
+      if(isFirstTime){
+        if(!user.trim()||!pass.trim()){setErr('Completeaza utilizator si parola');setLoading(false);return}
+        setAuthCreds(user.trim(),pass);onLogin(true);
+      } else {
+        if(user===creds.u&&pass===creds.p){onLogin(true)}
+        else{setErr('Utilizator sau parola incorecta');setLoading(false)}
+      }
     },500);
   };
   return(
@@ -276,23 +261,24 @@ function LoginScreen({onLogin}){
           <div style={{fontSize:'.82rem',color:'var(--t3)',marginTop:4}}>Performance Dashboard</div>
         </div>
         <div className="login-card">
+          {isFirstTime&&<div style={{padding:'10px 14px',background:'rgba(59,130,246,.08)',border:'1px solid rgba(59,130,246,.2)',borderRadius:8,marginBottom:14,fontSize:'.78rem',color:C.blue}}>Prima utilizare — alege un utilizator si parola pentru dashboard.</div>}
           <form onSubmit={submit}>
             {err&&<div className="login-error">{err}</div>}
             <div className="login-field">
-              <label>Utilizator</label>
-              <input className="inp" value={user} onChange={e=>setUser(e.target.value)} placeholder="admin" autoFocus autoComplete="username"/>
+              <label>{isFirstTime?'Alege utilizator':'Utilizator'}</label>
+              <input className="inp" value={user} onChange={e=>setUser(e.target.value)} placeholder={isFirstTime?'alege un username':'username'} autoFocus autoComplete="username"/>
             </div>
             <div className="login-field">
-              <label>Parola</label>
-              <input className="inp" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" autoComplete="current-password"/>
+              <label>{isFirstTime?'Alege parola':'Parola'}</label>
+              <input className="inp" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" autoComplete={isFirstTime?'new-password':'current-password'}/>
             </div>
             <button className="btn" type="submit" disabled={loading} style={{width:'100%',marginTop:8,padding:'12px 20px'}}>
-              {loading?'Se autentifica...':'Autentificare'}
+              {loading?(isFirstTime?'Se configureaza...':'Se autentifica...'):(isFirstTime?'Creeaza cont & intra':'Autentificare')}
             </button>
           </form>
         </div>
         <div style={{textAlign:'center',marginTop:16,fontSize:'.72rem',color:'var(--t3)'}}>
-          Acces restrictionat — doar utilizatori autorizati
+          {isFirstTime?'Credentialele sunt stocate local, doar pe acest dispozitiv.':'Acces restrictionat — doar utilizatori autorizati'}
         </div>
       </div>
     </div>
@@ -454,7 +440,7 @@ function RevenueTab({data,oA}){
 function SubscribersTab({data,oA}){
   if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
   // Source of truth: buildSubscriberList — fiecare client apare o singura data cu currentType
-  const subsList=buildSubscriberList(data);
+  const subsList=useMemo(()=>buildSubscriberList(data),[data]);
   const tS=subsList.length;
   const tA=subsList.filter(s=>s.currentType==='annual').length;
   const tM=subsList.filter(s=>s.currentType==='monthly').length;
