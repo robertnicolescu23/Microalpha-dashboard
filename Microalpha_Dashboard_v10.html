@@ -152,6 +152,45 @@ function integrateExpenses(data){
   updated.months.forEach(m=>{runBal+=m.totalIncasari+m.capitalInflows-m.expenses.total;m.cashBalance=runBal});
   return updated;
 }
+function computeCumulativeMRR(data){
+  if(!data.months||data.months.length===0)return data;
+  // Collect all positive subscription transactions across all months
+  const allSubTx=[];
+  data.months.forEach(m=>{
+    m.transactions.forEach(t=>{
+      if((t.type==='annual'||t.type==='monthly')&&t.amount>0){
+        allSubTx.push({client:t.client,type:t.type,amount:t.amount,date:t.date,monthNum:m.month,year:m.year||new Date().getFullYear()});
+      }
+    });
+  });
+  return{...data,months:data.months.map(m=>{
+    const mYear=m.year||new Date().getFullYear();
+    const monthStart=new Date(mYear,m.month-1,1);
+    const monthEnd=new Date(mYear,m.month,0); // last day of month
+    // For each client, find their latest positive payment that is still active during this month
+    const activeByClient={};
+    allSubTx.forEach(t=>{
+      const txDate=new Date(t.date);
+      if(txDate>monthEnd)return; // future transaction — skip
+      const validity=t.type==='annual'?365:30;
+      const expiry=new Date(txDate.getTime()+validity*86400000);
+      if(expiry>=monthStart){
+        // subscription still active in this month — keep latest per client
+        if(!activeByClient[t.client]||txDate>new Date(activeByClient[t.client].date)){
+          activeByClient[t.client]=t;
+        }
+      }
+    });
+    // Sum MRR from all active subscribers
+    let cMRR=0;const mrrByClient={};
+    Object.entries(activeByClient).forEach(([client,t])=>{
+      const contribution=t.type==='annual'?t.amount/12:t.amount;
+      cMRR+=contribution;
+      mrrByClient[client]={amount:Math.round(contribution*100)/100,type:t.type};
+    });
+    return{...m,mrr:Math.round(cMRR*100)/100,mrrByClient};
+  })};
+}
 async function fetchAppsScript(scriptUrl,token){
   const sep=scriptUrl.includes('?')?'&':'?';
   const url=`${scriptUrl}${sep}token=${encodeURIComponent(token)}`;
@@ -179,11 +218,15 @@ function computeAudit(data){
   const rBM=data.months.map(m=>({month:m.name,declared:m.totalIncasari,computed:m.transactions.reduce((s,t)=>s+t.amount,0),annualRev:m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount,0),monthlyRev:m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0),otherRev:m.transactions.filter(t=>t.type==='other').reduce((s,t)=>s+t.amount,0)}));
   const cT=rBM.reduce((s,r)=>s+r.computed,0);
   A.totalRevenue={id:'totalRevenue',label:'Total Revenue',value:tRev,computedValue:cT,match:Math.abs(tRev-cT)<1,formula:'SUM(incasari_luna)',formulaDetail:rBM.map(r=>`${r.month}: ${ff(r.declared)} RON`).join(' + ')+` = ${ff(tRev)} RON`,breakdown:rBM,transactions:allTx,source:'Incasari → col E'};
-  const mD=data.months.map(m=>{const aM=m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount/12,0),mM=m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0);return{month:m.name,declared:m.mrr,computed:Math.round((aM+mM)*100)/100,annualMRR:Math.round(aM*100)/100,monthlyMRR:mM,annualCount:m.annualSubs,monthlyCount:m.monthlySubs}});
-  const lm=mD[mD.length-1];
-  A.mrr={id:'mrr',label:'MRR',value:latest.mrr,computedValue:lm.computed,match:Math.abs(latest.mrr-lm.computed)<2,formula:'SUM(annual/12) + SUM(monthly)',formulaDetail:`Anuali: ${lm.annualCount} x (amt/12) = ${ff(Math.round(lm.annualMRR))}\nLunari: ${lm.monthlyCount} = ${ff(lm.monthlyMRR)}\nTotal: ${ff(Math.round(lm.computed))}`,breakdown:mD,transactions:allTx.filter(t=>t.monthNum===latest.month),source:'Incasari → col J'};
+  // MRR is now cumulative — includes all active subscribers, not just current month's transactions
+  const latestByClient=latest.mrrByClient||{};
+  const latestActiveCount=Object.keys(latestByClient).length;
+  const latestAnnualMRR=Object.values(latestByClient).filter(c=>c.type==='annual').reduce((s,c)=>s+c.amount,0);
+  const latestMonthlyMRR=Object.values(latestByClient).filter(c=>c.type==='monthly').reduce((s,c)=>s+c.amount,0);
+  const mD=data.months.map(m=>{const bc=m.mrrByClient||{};return{month:m.name,mrr:m.mrr,activeClients:Object.keys(bc).length,annualMRR:Object.values(bc).filter(c=>c.type==='annual').reduce((s,c)=>s+c.amount,0),monthlyMRR:Object.values(bc).filter(c=>c.type==='monthly').reduce((s,c)=>s+c.amount,0)}});
+  A.mrr={id:'mrr',label:'MRR (Cumulativ)',value:latest.mrr,computedValue:latest.mrr,match:true,formula:'SUM(MRR per active subscriber) — cumulative across all months',formulaDetail:`Active subscribers: ${latestActiveCount}\nAnuali MRR: ${ff(Math.round(latestAnnualMRR))} RON (${Object.values(latestByClient).filter(c=>c.type==='annual').length} clienti)\nLunari MRR: ${ff(Math.round(latestMonthlyMRR))} RON (${Object.values(latestByClient).filter(c=>c.type==='monthly').length} clienti)\n---\n`+Object.entries(latestByClient).sort((a,b)=>b[1].amount-a[1].amount).map(([c,v])=>`  ${c}: ${ff(Math.round(v.amount))} RON/luna (${v.type})`).join('\n')+`\n---\nTotal MRR: ${ff(Math.round(latest.mrr))} RON`,breakdown:mD,transactions:allTx.filter(t=>t.type==='annual'||t.type==='monthly'),source:'Cumulative active subscribers'};
   const arr=latest.mrr*12;
-  A.arr={id:'arr',label:'ARR',value:arr,computedValue:lm.computed*12,match:true,formula:'MRR x 12',formulaDetail:`${ff(Math.round(latest.mrr))} x 12 = ${ff(Math.round(arr))}`,breakdown:[{label:'MRR',value:latest.mrr},{label:'x12',value:12},{label:'ARR',value:arr}],transactions:[],source:'Derivat din MRR'};
+  A.arr={id:'arr',label:'ARR',value:arr,computedValue:arr,match:true,formula:'MRR Cumulativ x 12',formulaDetail:`${ff(Math.round(latest.mrr))} x 12 = ${ff(Math.round(arr))} RON`,breakdown:[{label:'MRR Cumulativ',value:latest.mrr},{label:'x12',value:12},{label:'ARR',value:arr}],transactions:[],source:'Derivat din MRR cumulativ'};
   A.subscribers={id:'subscribers',label:'Total Abonati',value:tSub,computedValue:allTx.filter(t=>t.type==='annual'||t.type==='monthly').length,match:tSub===allTx.filter(t=>t.type==='annual'||t.type==='monthly').length,formula:'COUNT(tranzactii)',formulaDetail:data.months.map(m=>`${m.name}: ${m.newSubscribers}`).join(', '),breakdown:data.months.map(m=>({month:m.name,annual:m.annualSubs,monthly:m.monthlySubs,total:m.newSubscribers})),transactions:allTx.filter(t=>t.type!=='other'),source:'Incasari count'};
   const arpu=tSub>0?tRev/tSub:0,cArpu=tSub>0?cT/tSub:0;
   A.arpu={id:'arpu',label:'ARPU',value:arpu,computedValue:cArpu,match:Math.abs(arpu-cArpu)<1,formula:'Revenue / Subscribers',formulaDetail:`${ff(tRev)} / ${tSub} = ${ff(Math.round(arpu))}`,breakdown:[{label:'Revenue',value:tRev},{label:'Subs',value:tSub},{label:'ARPU',value:Math.round(arpu)}],transactions:[],source:'Derivat'};
@@ -210,18 +253,17 @@ function computeAudit(data){
   if(data.months.length>=2){
     const prevMonth=data.months[data.months.length-2];
     const currMonth=data.months[data.months.length-1];
-    // Build per-client revenue maps for previous and current month
-    const prevClientRev={};
-    prevMonth.transactions.filter(t=>t.type==='annual'||t.type==='monthly').forEach(t=>{prevClientRev[t.client]=(prevClientRev[t.client]||0)+t.amount});
-    const currClientRev={};
-    currMonth.transactions.filter(t=>t.type==='annual'||t.type==='monthly').forEach(t=>{currClientRev[t.client]=(currClientRev[t.client]||0)+t.amount});
-    nrrBeginning=Object.values(prevClientRev).reduce((s,v)=>s+v,0);
-    // For each previous client, compute expansion/contraction/churn
-    Object.entries(prevClientRev).forEach(([client,prevAmt])=>{
-      const currAmt=currClientRev[client]||0;
-      if(currAmt===0)nrrChurn+=prevAmt;
-      else if(currAmt>prevAmt)nrrExpansion+=(currAmt-prevAmt);
-      else if(currAmt<prevAmt)nrrContraction+=(prevAmt-currAmt);
+    // Use cumulative mrrByClient maps (active subscribers) instead of per-month transactions
+    const prevClientMRR=prevMonth.mrrByClient||{};
+    const currClientMRR=currMonth.mrrByClient||{};
+    nrrBeginning=Object.values(prevClientMRR).reduce((s,c)=>s+c.amount,0);
+    // For each previous active client, compute expansion/contraction/churn
+    Object.entries(prevClientMRR).forEach(([client,prev])=>{
+      const curr=currClientMRR[client];
+      const currAmt=curr?curr.amount:0;
+      if(currAmt===0)nrrChurn+=prev.amount;
+      else if(currAmt>prev.amount)nrrExpansion+=(currAmt-prev.amount);
+      else if(currAmt<prev.amount)nrrContraction+=(prev.amount-currAmt);
     });
     if(nrrBeginning>0){
       nrrValue=((nrrBeginning+nrrExpansion-nrrContraction-nrrChurn)/nrrBeginning)*100;
@@ -872,8 +914,9 @@ function App(){
   const[auditModal,setAuditModal]=useState(null);
   const enriched=useMemo(()=>{
     const d=integrateExpenses(data);
-    d.renewals=computeRenewals(d);
-    return d;
+    const d2=computeCumulativeMRR(d);
+    d2.renewals=computeRenewals(d2);
+    return d2;
   },[data]);
   const audits=useMemo(()=>computeAudit(enriched),[enriched]);
   const openA=(k)=>{if(audits[k])setAuditModal(audits[k])};

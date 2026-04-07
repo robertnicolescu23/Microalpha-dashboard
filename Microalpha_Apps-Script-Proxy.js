@@ -140,6 +140,51 @@ function doGet(e) {
     // Sorteaza lunile cronologic
     result.months.sort(function(a, b) { return a.monthIndex - b.monthIndex; });
 
+    // ═══ CUMULATIVE MRR ═══
+    // Recalculeaza MRR cumulativ: pentru fiecare luna, include TOTI abonatii activi
+    // (nu doar tranzactiile din luna respectiva)
+    var allSubTx = [];
+    for (var mi = 0; mi < result.months.length; mi++) {
+      var mo = result.months[mi];
+      for (var ti = 0; ti < mo.transactions.length; ti++) {
+        var tx = mo.transactions[ti];
+        if ((tx.type === 'annual' || tx.type === 'monthly') && tx.amount > 0) {
+          allSubTx.push({ client: tx.client, type: tx.type, amount: tx.amount, date: tx.date, monthIndex: mo.monthIndex });
+        }
+      }
+    }
+
+    for (var mi = 0; mi < result.months.length; mi++) {
+      var mo = result.months[mi];
+      var mIdx = mo.monthIndex; // 0-based month index
+      var year = new Date().getFullYear();
+      var monthStart = new Date(year, mIdx, 1);
+      var monthEnd = new Date(year, mIdx + 1, 0);
+
+      // Find latest active subscription per client for this month
+      var activeByClient = {};
+      for (var si = 0; si < allSubTx.length; si++) {
+        var stx = allSubTx[si];
+        var txDate = new Date(stx.date);
+        if (txDate > monthEnd) continue; // future transaction
+        var validity = stx.type === 'annual' ? 365 : 30;
+        var expiry = new Date(txDate.getTime() + validity * 86400000);
+        if (expiry >= monthStart) {
+          if (!activeByClient[stx.client] || txDate > new Date(activeByClient[stx.client].date)) {
+            activeByClient[stx.client] = stx;
+          }
+        }
+      }
+
+      var cMRR = 0;
+      var clients = Object.keys(activeByClient);
+      for (var ci = 0; ci < clients.length; ci++) {
+        var sub = activeByClient[clients[ci]];
+        cMRR += sub.type === 'annual' ? sub.amount / 12 : sub.amount;
+      }
+      mo.mrr = Math.round(cMRR * 100) / 100;
+    }
+
     output.setContent(JSON.stringify(result));
     return output;
 
