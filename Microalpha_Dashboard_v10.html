@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Microalpha AI — Dashboard v9</title>
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>window.onerror=function(m,s,l,c,e){document.getElementById('root').innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0a0e1a;min-height:100vh"><h2 style="color:#f1f5f9;margin-bottom:16px">Eroare</h2><pre>'+m+'\n'+(e&&e.stack||'')+'</pre></div>'};</script>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--card:#111827;--card2:#1a2237;--brd:#1e293b;--brd2:#2d3a52;--t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;--blue:#3b82f6;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:22px;transition:all .2s}.card:hover{border-color:var(--brd2)}
+.kpi-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:20px;position:relative;overflow:hidden;cursor:pointer;transition:all .2s}
+.kpi-card:hover{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue),0 4px 20px rgba(59,130,246,.12)}
+.kpi-card .audit-hint{opacity:0;transition:opacity .2s;font-size:.65rem;color:var(--t3);position:absolute;bottom:6px;right:10px}.kpi-card:hover .audit-hint{opacity:1}
+.kpi-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:5px}
+.kpi-value{font-size:1.8rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600}
+.bg{background:rgba(16,185,129,.12);color:var(--green)}.br{background:rgba(239,68,68,.12);color:var(--red)}
+.by{background:rgba(245,158,11,.12);color:var(--yellow)}.bb{background:rgba(59,130,246,.12);color:var(--blue)}
+.bp{background:rgba(139,92,246,.12);color:var(--purple)}
+.tab-btn{padding:10px 18px;border:none;background:transparent;color:var(--t3);font-size:.82rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--t2)}.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-btn.audit-tab{color:var(--yellow)}.tab-btn.audit-tab.active{color:var(--yellow);border-bottom-color:var(--yellow)}
+.inp{background:#0d1117;border:1px solid var(--brd);border-radius:8px;padding:10px 14px;color:var(--t1);font-size:.85rem;width:100%;font-family:inherit;outline:none;transition:border .2s}.inp:focus{border-color:var(--blue)}
+.btn{background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem;font-family:inherit;transition:all .2s}.btn:hover{background:#2563eb}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-o{background:transparent;color:var(--t2);border:1px solid var(--brd);padding:7px 14px;border-radius:8px;font-weight:500;cursor:pointer;font-size:.78rem;font-family:inherit}.btn-o:hover{border-color:var(--blue);color:var(--blue)}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(239,68,68,.3);padding:7px 14px;border-radius:8px;font-weight:500;cursor:pointer;font-size:.78rem;font-family:inherit}.btn-red:hover{background:rgba(239,68,68,.1)}
+table{width:100%;border-collapse:collapse}th{text-align:left;padding:9px 10px;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);border-bottom:1px solid var(--brd)}
+td{padding:9px 10px;font-size:.82rem;border-bottom:1px solid rgba(30,41,59,.4)}tr:hover td{background:rgba(59,130,246,.02)}
+.progress-bar{height:5px;background:var(--brd);border-radius:3px;overflow:hidden}.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeO .2s}
+@keyframes fadeO{from{opacity:0}to{opacity:1}}
+.modal-box{background:var(--card);border:1px solid var(--brd2);border-radius:16px;width:90%;max-width:900px;max-height:85vh;overflow-y:auto;animation:slideUp .25s ease-out}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card);z-index:1;border-radius:16px 16px 0 0}
+.modal-body{padding:24px}
+.modal-close{background:none;border:1px solid var(--brd);color:var(--t2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center}.modal-close:hover{border-color:var(--red);color:var(--red)}
+.formula-box{background:#0d1117;border:1px solid var(--brd);border-radius:10px;padding:14px 18px;font-family:'Fira Code',monospace,Consolas;font-size:.82rem;color:var(--cyan);margin:12px 0;line-height:1.6;white-space:pre-wrap}
+.audit-section{margin-bottom:20px}.audit-section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--yellow);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.audit-match{color:var(--green);font-weight:700}.audit-mismatch{color:var(--red);font-weight:700}
+.audit-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.audit-summary-item{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px;text-align:center}
+.search-input{background:#0d1117;border:1px solid var(--brd);border-radius:8px;padding:8px 12px;color:var(--t1);font-size:.8rem;width:260px;font-family:inherit;outline:none}.search-input:focus{border-color:var(--yellow)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+@media(max-width:1200px){.g6{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.g2,.g3,.g4,.g6{grid-template-columns:1fr}}
+.fade{animation:fadeIn .3s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.pulse{animation:pulse 1.5s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Login page */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{width:400px;max-width:90vw}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-card{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:32px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:.75rem;font-weight:600;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.login-error{color:var(--red);font-size:.8rem;margin-bottom:12px;padding:8px 12px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)}
+
+/* Upload extras (from v5, not in v3) */
+.upload-zone{border:2px dashed var(--brd2);border-radius:14px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(59,130,246,.02)}
+.upload-zone:hover{border-color:var(--blue);background:rgba(59,130,246,.06)}
+.upload-zone.drag-over{border-color:var(--blue);background:rgba(59,130,246,.1)}
+.source-card{background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;transition:.2s}
+.source-card.active{border-color:var(--green)}
+.source-card:hover{border-color:var(--brd2)}
+.cat-sel{background:#0d1117;border:1px solid var(--brd);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:.76rem;font-family:inherit;cursor:pointer;min-width:100px}
+.cat-sel:hover{border-color:var(--blue)}.cat-sel:focus{outline:none;border-color:var(--blue)}
+.excluded-row{opacity:.4;text-decoration:line-through}
+.collapsible-header{cursor:pointer;background:var(--card2);font-weight:700;transition:background .2s}
+.collapsible-header:hover{background:rgba(30,41,59,.8)}
+.collapsible-header td{padding:10px}
+.settings-panel{position:absolute;top:50px;right:24px;background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:20px;width:340px;z-index:100;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.settings-panel label{display:block;font-size:.72rem;color:var(--t3);text-transform:uppercase;margin-bottom:6px}
+.input-file-hidden{display:none}
+</style>
+</head>
+<body>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0e1a"><div style="text-align:center;color:#94a3b8"><div style="width:40px;height:40px;border:3px solid #1e293b;border-top:3px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px"></div>Se încarcă...</div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div>
+<script type="text/babel">
+if(typeof React==='undefined'||typeof Recharts==='undefined'){document.getElementById('root').innerHTML='<p style="color:#ef4444;padding:40px">Dependentele nu s-au incarcat. Verifica internetul.</p>';throw new Error('deps')}
+const{useState,useEffect,useCallback,useMemo,useRef}=React;
+const{LineChart,Line,AreaChart,Area,BarChart,Bar,PieChart,Pie,Cell,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,Legend,ComposedChart}=Recharts;
+const MRO=['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+const MS=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+const C={blue:'#3b82f6',green:'#10b981',red:'#ef4444',yellow:'#f59e0b',purple:'#8b5cf6',cyan:'#06b6d4'};
+const PC=['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899'];
+const fmt=(n,d=0)=>{if(n==null||isNaN(n))return'0';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(1)+'M';if(a>=1e3)return(n/1e3).toFixed(d>0?d:a>=1e4?0:1)+'K';return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',')};
+const ff=(n)=>{if(n==null||isNaN(n))return'0';return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')};
+const pct=(v,t)=>t===0?'0.0':((v/t)*100).toFixed(1);
+const gw=(c,p)=>p===0?(c>0?'100.0':'0.0'):(((c-p)/p)*100).toFixed(1);
+const AUTH_USER='admin';
+const AUTH_PASS='MicroAlpha2026!';
+const DEFAULT_DATA={months:[],bankStatement:[],renewals:{total:0,nextMonthDue:0,byStatus:{Pending:0,Renewed:0,Churned:0},upcomingMonth:{}},sources:[{id:'gs',name:'Google Sheets (Incasari)',type:'google-sheets',active:true,deletable:false}]};
+function computeRenewals(data){
+  if(!data.months||data.months.length===0)return{total:0,nextMonthDue:0,byStatus:{Pending:0,Renewed:0,Churned:0},clients:[]};
+  const clients={};
+  data.months.forEach(m=>{
+    m.transactions.forEach(t=>{
+      if(t.type==='annual'||t.type==='monthly'){
+        if(!clients[t.client])clients[t.client]={name:t.client,type:t.type,amount:0,lastDate:null,months:[]};
+        clients[t.client].amount+=t.amount;
+        clients[t.client].lastDate=t.date;
+        clients[t.client].months.push(m.name);
+      }
+    });
+  });
+  const now=new Date(),cList=Object.values(clients);
+  let due=0;
+  cList.forEach(c=>{
+    if(!c.lastDate)return;
+    const ld=new Date(c.lastDate);
+    const validity=c.type==='annual'?365:30;
+    const expiry=new Date(ld.getTime()+validity*86400000);
+    const daysLeft=Math.floor((expiry-now)/86400000);
+    c.daysLeft=daysLeft;
+    c.status=daysLeft<0?'Churned':daysLeft<=30?'Pending':'Renewed';
+    if(daysLeft>=0&&daysLeft<=30)due++;
+  });
+  return{total:cList.length,nextMonthDue:due,byStatus:{Pending:cList.filter(c=>c.status==='Pending').length,Renewed:cList.filter(c=>c.status==='Renewed').length,Churned:cList.filter(c=>c.status==='Churned').length},clients:cList};
+}
+function integrateExpenses(data){
+  if(!data.months||data.months.length===0||!data.bankStatement||data.bankStatement.length===0)return data;
+  const updated={...data,months:data.months.map(m=>{
+    const mIdx=m.month;const expenses={total:0,breakdown:{}};
+    data.bankStatement.filter(t=>!t.excluded&&t.amount<0).forEach(t=>{
+      const td=new Date(t.date);
+      if(td.getMonth()+1===mIdx){
+        const amt=Math.abs(t.amount);
+        const cat=t.expenseCategory||t.category||'Necategorizat';
+        expenses.total+=amt;expenses.breakdown[cat]=(expenses.breakdown[cat]||0)+amt;
+      }
+    });
+    let capitalIn=0;
+    data.bankStatement.filter(t=>!t.excluded&&t.amount>0&&(t.incomeType==='Capital Social'||t.category==='Capital Social')).forEach(t=>{
+      const td=new Date(t.date);
+      if(td.getMonth()+1===mIdx)capitalIn+=t.amount;
+    });
+    return{...m,expenses,capitalInflows:capitalIn,cashInflows:m.totalIncasari+capitalIn,cashBalance:m.totalIncasari+capitalIn-expenses.total};
+  })};
+  let runBal=0;
+  updated.months.forEach(m=>{runBal+=m.totalIncasari+m.capitalInflows-m.expenses.total;m.cashBalance=runBal});
+  return updated;
+}
+async function fetchAppsScript(scriptUrl,token){
+  const sep=scriptUrl.includes('?')?'&':'?';
+  const url=`${scriptUrl}${sep}token=${encodeURIComponent(token)}`;
+  const res=await fetch(url,{redirect:'follow'});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  const json=await res.json();
+  if(json.error)throw new Error(json.message||json.error);
+  const months=json.months.map(m=>({
+    name:m.name,month:m.monthIndex+1,year:new Date().getFullYear(),
+    totalIncasari:m.totalIncasari,
+    transactions:m.transactions.map(t=>({type:t.type,client:(t.client||'').replace(/\s+/g,' ').trim(),contract:t.contract,amount:t.amount,service:t.service,manager:t.manager,date:t.date})),
+    newSubscribers:m.newSubscribers,annualSubs:m.annualSubs,monthlySubs:m.monthlySubs,
+    mrr:m.mrr,
+    expenses:{total:0,breakdown:{}},cashInflows:m.totalIncasari,capitalInflows:0,cashBalance:0
+  })).filter(m=>m.totalIncasari>0||m.transactions.length>0);
+  return{months,renewals:DEFAULT_DATA.renewals,bankStatement:DEFAULT_DATA.bankStatement,meta:json.meta};
+}
+function computeClientStatus(data){
+  const clients={};
+  data.months.forEach(m=>{
+    m.transactions.forEach(t=>{
+      if(!clients[t.client])clients[t.client]={name:t.client,net:0,type:null,firstPositive:null,lastPositive:null,transactions:[]};
+      clients[t.client].transactions.push({...t,monthNum:m.month});
+      if(t.amount>0){clients[t.client].net+=t.amount;if(!clients[t.client].firstPositive)clients[t.client].firstPositive=t.date;clients[t.client].lastPositive=t.date;}
+      else clients[t.client].net+=t.amount;
+      if(t.service.includes('Anual'))clients[t.client].type='annual';
+      else if(t.service.includes('Lunar'))clients[t.client].type='monthly';
+    });
+  });
+  const now=new Date();
+  return Object.values(clients).map(c=>{
+    c.net=Math.max(0,c.net);
+    const daysSinceLastPos=c.lastPositive?Math.floor((now-new Date(c.lastPositive))/86400000):Infinity;
+    const validityDays=c.type==='annual'?365:30;
+    if(c.net>0&&daysSinceLastPos<=validityDays)c.status='active';
+    else if(c.net===0&&c.transactions.filter(t=>t.amount>0).length===c.transactions.filter(t=>t.amount<0).length)c.status='churn_explicit';
+    else if(c.net>0&&daysSinceLastPos>validityDays)c.status='churn_passive';
+    else c.status='active';
+    return c;
+  });
+}
+function computeAudit(data){
+  if(!data.months||data.months.length===0)return {};
+  const A={};const allTx=data.months.flatMap(m=>m.transactions.map(t=>({...t,monthName:m.name,monthNum:m.month})));
+  const tRev=data.months.reduce((s,m)=>s+m.totalIncasari,0),tSub=data.months.reduce((s,m)=>s+m.newSubscribers,0);
+  const latest=data.months[data.months.length-1],prev=data.months.length>1?data.months[data.months.length-2]:null;
+  const tExp=data.months.reduce((s,m)=>s+m.expenses.total,0),eM=data.months.filter(m=>m.expenses.total>0).length||1;
+  const rBM=data.months.map(m=>({month:m.name,declared:m.totalIncasari,computed:m.transactions.reduce((s,t)=>s+t.amount,0),annualRev:m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount,0),monthlyRev:m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0),otherRev:m.transactions.filter(t=>t.type==='other').reduce((s,t)=>s+t.amount,0)}));
+  const cT=rBM.reduce((s,r)=>s+r.computed,0);
+  A.totalRevenue={id:'totalRevenue',label:'Total Revenue',value:tRev,computedValue:cT,match:Math.abs(tRev-cT)<1,formula:'SUM(incasari_luna)',formulaDetail:rBM.map(r=>`${r.month}: ${ff(r.declared)} RON`).join(' + ')+` = ${ff(tRev)} RON`,breakdown:rBM,transactions:allTx,source:'Incasari → col E'};
+  const mD=data.months.map(m=>{const aM=m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount/12,0),mM=m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0);return{month:m.name,declared:m.mrr,computed:Math.round((aM+mM)*100)/100,annualMRR:Math.round(aM*100)/100,monthlyMRR:mM,annualCount:m.annualSubs,monthlyCount:m.monthlySubs}});
+  const lm=mD[mD.length-1];
+  A.mrr={id:'mrr',label:'MRR',value:latest.mrr,computedValue:lm.computed,match:Math.abs(latest.mrr-lm.computed)<2,formula:'SUM(annual/12) + SUM(monthly)',formulaDetail:`Anuali: ${lm.annualCount} x (amt/12) = ${ff(Math.round(lm.annualMRR))}\nLunari: ${lm.monthlyCount} = ${ff(lm.monthlyMRR)}\nTotal: ${ff(Math.round(lm.computed))}`,breakdown:mD,transactions:allTx.filter(t=>t.monthNum===latest.month),source:'Incasari → col J'};
+  const arr=latest.mrr*12;
+  A.arr={id:'arr',label:'ARR',value:arr,computedValue:lm.computed*12,match:true,formula:'MRR x 12',formulaDetail:`${ff(Math.round(latest.mrr))} x 12 = ${ff(Math.round(arr))}`,breakdown:[{label:'MRR',value:latest.mrr},{label:'x12',value:12},{label:'ARR',value:arr}],transactions:[],source:'Derivat din MRR'};
+  A.subscribers={id:'subscribers',label:'Total Abonati',value:tSub,computedValue:allTx.filter(t=>t.type==='annual'||t.type==='monthly').length,match:tSub===allTx.filter(t=>t.type==='annual'||t.type==='monthly').length,formula:'COUNT(tranzactii)',formulaDetail:data.months.map(m=>`${m.name}: ${m.newSubscribers}`).join(', '),breakdown:data.months.map(m=>({month:m.name,annual:m.annualSubs,monthly:m.monthlySubs,total:m.newSubscribers})),transactions:allTx.filter(t=>t.type!=='other'),source:'Incasari count'};
+  const arpu=tSub>0?tRev/tSub:0,cArpu=tSub>0?cT/tSub:0;
+  A.arpu={id:'arpu',label:'ARPU',value:arpu,computedValue:cArpu,match:Math.abs(arpu-cArpu)<1,formula:'Revenue / Subscribers',formulaDetail:`${ff(tRev)} / ${tSub} = ${ff(Math.round(arpu))}`,breakdown:[{label:'Revenue',value:tRev},{label:'Subs',value:tSub},{label:'ARPU',value:Math.round(arpu)}],transactions:[],source:'Derivat'};
+  A.cashBalance={id:'cashBalance',label:'Cash Balance',value:latest.cashBalance,computedValue:latest.cashBalance,match:true,formula:'Sold + Intrari - Iesiri',formulaDetail:data.months.map(m=>`${m.name}: ${ff(Math.round(m.cashBalance))}`).join('\n'),breakdown:data.months.map(m=>({month:m.name,inflows:m.cashInflows,capital:m.capitalInflows,outflows:m.expenses.total,balance:m.cashBalance})),transactions:data.bankStatement,source:'Extras Revolut'};
+  const burn=tExp/eM;
+  A.burnRate={id:'burnRate',label:'Burn Rate',value:burn,computedValue:burn,match:true,formula:'Cheltuieli / Luni',formulaDetail:`${ff(Math.round(tExp))} / ${eM} = ${ff(Math.round(burn))}/luna`,breakdown:data.months.filter(m=>m.expenses.total>0).map(m=>({month:m.name,expenses:m.expenses.total})),transactions:data.bankStatement.filter(t=>t.amount<0&&!t.excluded),source:'Extras Revolut'};
+  const rg=prev?parseFloat(gw(latest.totalIncasari,prev.totalIncasari)):null;
+  A.revenueGrowth={id:'revenueGrowth',label:'Revenue Growth',value:rg,computedValue:rg,match:true,formula:'(Rev_curent - Rev_anterior) / Rev_anterior x 100',formulaDetail:prev?`(${ff(latest.totalIncasari)} - ${ff(prev.totalIncasari)}) / ${ff(prev.totalIncasari)} = ${rg}%`:'N/A',breakdown:data.months.map(m=>({month:m.name,revenue:m.totalIncasari})),transactions:[],source:'Calculat'};
+  A.renewals={id:'renewals',label:'Contracte',value:data.renewals.total,computedValue:data.renewals.total,match:true,formula:'COUNT(Renewals)',formulaDetail:`Total: ${data.renewals.total}`,breakdown:[data.renewals.byStatus],transactions:[],source:'P&L Renewals'};
+  const clientStatus=computeClientStatus(data);
+  const totalClients=clientStatus.length;
+  const churnedClients=clientStatus.filter(c=>c.status.includes('churn')).length;
+  const churnRate=totalClients>0?(churnedClients/totalClients)*100:0;
+  A.churnRate={id:'churnRate',label:'Churn Rate',value:churnRate,computedValue:churnRate,match:true,formula:'Churned / Total x 100',formulaDetail:`${churnedClients} / ${totalClients} = ${churnRate.toFixed(1)}%`,breakdown:clientStatus.map(c=>({client:c.name,status:c.status,net:c.net})),transactions:allTx,source:'Client Status'};
+  const mgrs={};allTx.forEach(t=>{const m=t.manager||'N/A';if(!mgrs[m])mgrs[m]={name:m,deals:0,revenue:0,annual:0,monthly:0};mgrs[m].deals++;mgrs[m].revenue+=t.amount;if(t.type==='annual')mgrs[m].annual++;if(t.type==='monthly')mgrs[m].monthly++});
+  A.managers={id:'managers',label:'Sales',value:Object.keys(mgrs).length,computedValue:Object.keys(mgrs).length,match:true,formula:'GROUP BY manager',formulaDetail:Object.values(mgrs).sort((a,b)=>b.revenue-a.revenue).map(m=>`${m.name}: ${m.deals} deals, ${ff(m.revenue)} RON`).join('\n'),breakdown:Object.values(mgrs).sort((a,b)=>b.revenue-a.revenue),transactions:allTx,source:'Manager'};
+  const ec={};data.bankStatement.filter(t=>t.amount<0&&!t.excluded).forEach(t=>{ec[t.category]=(ec[t.category]||0)+Math.abs(t.amount)});
+  const computedExpenses=data.bankStatement.filter(t=>t.amount<0&&!t.excluded).reduce((s,t)=>s+Math.abs(t.amount),0);
+  A.expenses={id:'expenses',label:'Cheltuieli',value:tExp,computedValue:computedExpenses,match:Math.abs(tExp-computedExpenses)<1,formula:'SUM(|negative|)',formulaDetail:Object.entries(ec).map(([k,v])=>`${k}: ${ff(Math.round(v))}`).join('\n'),breakdown:Object.entries(ec).map(([name,value])=>({name,value})),transactions:data.bankStatement.filter(t=>t.amount<0&&!t.excluded),source:'Bank Statement'};
+  // Compute NRR and GRR (SaaS standard)
+  // NRR = (Beginning MRR + Expansion - Contraction - Churn) / Beginning MRR × 100
+  // GRR = (Beginning MRR - Contraction - Churn) / Beginning MRR × 100 (capped at 100%)
+  let nrrValue=100,grrValue=100,nrrExpansion=0,nrrContraction=0,nrrChurn=0,nrrBeginning=0;
+  if(data.months.length>=2){
+    const prevMonth=data.months[data.months.length-2];
+    const currMonth=data.months[data.months.length-1];
+    // Build per-client revenue maps for previous and current month
+    const prevClientRev={};
+    prevMonth.transactions.filter(t=>t.type==='annual'||t.type==='monthly').forEach(t=>{prevClientRev[t.client]=(prevClientRev[t.client]||0)+t.amount});
+    const currClientRev={};
+    currMonth.transactions.filter(t=>t.type==='annual'||t.type==='monthly').forEach(t=>{currClientRev[t.client]=(currClientRev[t.client]||0)+t.amount});
+    nrrBeginning=Object.values(prevClientRev).reduce((s,v)=>s+v,0);
+    // For each previous client, compute expansion/contraction/churn
+    Object.entries(prevClientRev).forEach(([client,prevAmt])=>{
+      const currAmt=currClientRev[client]||0;
+      if(currAmt===0)nrrChurn+=prevAmt;
+      else if(currAmt>prevAmt)nrrExpansion+=(currAmt-prevAmt);
+      else if(currAmt<prevAmt)nrrContraction+=(prevAmt-currAmt);
+    });
+    if(nrrBeginning>0){
+      nrrValue=((nrrBeginning+nrrExpansion-nrrContraction-nrrChurn)/nrrBeginning)*100;
+      grrValue=Math.min(100,((nrrBeginning-nrrContraction-nrrChurn)/nrrBeginning)*100);
+    }
+  }
+  A.nrr={id:'nrr',label:'NRR',value:nrrValue,computedValue:nrrValue,match:true,formula:'(Beginning MRR + Expansion - Contraction - Churn) / Beginning MRR × 100',formulaDetail:`Beginning: ${ff(nrrBeginning)}\nExpansion: +${ff(nrrExpansion)}\nContraction: -${ff(nrrContraction)}\nChurn: -${ff(nrrChurn)}\nNRR: ${nrrValue.toFixed(1)}%`,breakdown:[{label:'Beginning MRR',value:nrrBeginning},{label:'Expansion',value:nrrExpansion},{label:'Contraction',value:nrrContraction},{label:'Churn',value:nrrChurn}],transactions:[],source:'Cohort calculation'};
+  A.grr={id:'grr',label:'GRR',value:grrValue,computedValue:grrValue,match:true,formula:'(Beginning MRR - Contraction - Churn) / Beginning MRR × 100 (max 100%)',formulaDetail:`Beginning: ${ff(nrrBeginning)}\nContraction: -${ff(nrrContraction)}\nChurn: -${ff(nrrChurn)}\nGRR: ${grrValue.toFixed(1)}%`,breakdown:[{label:'Beginning MRR',value:nrrBeginning},{label:'Contraction',value:nrrContraction},{label:'Churn',value:nrrChurn}],transactions:[],source:'Cohort calculation'};
+  const ebitda=tRev-tExp;
+  A.ebitda={id:'ebitda',label:'EBITDA',value:ebitda,computedValue:ebitda,match:true,formula:'Revenue - Expenses',formulaDetail:`${ff(tRev)} - ${ff(tExp)} = ${ff(ebitda)}`,breakdown:[{label:'Revenue',value:tRev},{label:'Expenses',value:tExp},{label:'EBITDA',value:ebitda}],transactions:[],source:'P&L calculation'};
+  const bankDepositsFromSales=data.bankStatement.filter(t=>t.amount>0&&!t.excluded&&(t.category==='Procesator Plăți'||t.category==='Transfer Direct Client'||t.category==='Capital Social')).reduce((s,t)=>s+t.amount,0);
+  const pendingValue=Math.max(0,tRev-bankDepositsFromSales);
+  A.pendingTransfers={id:'pendingTransfers',label:'Pending Transfers',value:pendingValue,computedValue:pendingValue,match:true,formula:'Sheets revenue - Bank deposits (sales)',formulaDetail:`${ff(tRev)} - ${ff(bankDepositsFromSales)} = ${ff(pendingValue)} RON`,breakdown:[{label:'Total Revenue',value:tRev},{label:'Bank Deposits',value:bankDepositsFromSales},{label:'Pending',value:pendingValue}],transactions:[],source:'Google Sheets vs Bank'};
+  return A;
+}
+function LoginScreen({onLogin}){
+  const[user,setUser]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[loading,setLoading]=useState(false);
+  const submit=(e)=>{e.preventDefault();setLoading(true);setErr('');
+    setTimeout(()=>{
+      if(user===AUTH_USER&&pass===AUTH_PASS){onLogin(true)}
+      else{setErr('Utilizator sau parola incorecta');setLoading(false)}
+    },500);
+  };
+  return(
+    <div className="login-wrap">
+      <div className="login-box fade">
+        <div className="login-logo">
+          <svg width="48" height="48" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="url(#lg2)"/><defs><linearGradient id="lg2" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#3b82f6"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs><path d="M8 22V14l4-4 4 4v8M20 22V10l4-4v16" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div style={{fontSize:'1.4rem',fontWeight:800,marginTop:12}}>Microalpha<span style={{color:C.blue}}> AI</span></div>
+          <div style={{fontSize:'.82rem',color:'var(--t3)',marginTop:4}}>Performance Dashboard</div>
+        </div>
+        <div className="login-card">
+          <form onSubmit={submit}>
+            {err&&<div className="login-error">{err}</div>}
+            <div className="login-field">
+              <label>Utilizator</label>
+              <input className="inp" value={user} onChange={e=>setUser(e.target.value)} placeholder="admin" autoFocus autoComplete="username"/>
+            </div>
+            <div className="login-field">
+              <label>Parola</label>
+              <input className="inp" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" autoComplete="current-password"/>
+            </div>
+            <button className="btn" type="submit" disabled={loading} style={{width:'100%',marginTop:8,padding:'12px 20px'}}>
+              {loading?'Se autentifica...':'Autentificare'}
+            </button>
+          </form>
+        </div>
+        <div style={{textAlign:'center',marginTop:16,fontSize:'.72rem',color:'var(--t3)'}}>
+          Acces restrictionat — doar utilizatori autorizati
+        </div>
+      </div>
+    </div>
+  );
+}
+function CT({active,payload,label,unit='RON'}){
+  if(!active||!payload?.length)return null;
+  return(<div style={{background:'#1e293b',border:'1px solid #2d3a52',borderRadius:10,padding:'10px 14px',fontSize:'.78rem'}}>
+    <div style={{color:'var(--t3)',marginBottom:4,fontWeight:600}}>{label}</div>
+    {payload.map((p,i)=><div key={i} style={{color:p.color||'var(--t1)',display:'flex',gap:6,alignItems:'center'}}>
+      <span style={{width:7,height:7,borderRadius:'50%',background:p.color,display:'inline-block'}}/>
+      {p.name}: <b>{ff(p.value)} {unit}</b>
+    </div>)}
+  </div>)
+}
+function AuditModal({audit,onClose}){
+  const[search,setSearch]=useState('');const[showAll,setShowAll]=useState(false);
+  if(!audit)return null;
+  const txF=(audit.transactions||[]).filter(t=>{if(!search)return true;const s=search.toLowerCase();return(t.client||t.description||'').toLowerCase().includes(s)||(t.service||t.category||'').toLowerCase().includes(s)||(t.manager||'').toLowerCase().includes(s)});
+  const txS=showAll?txF:txF.slice(0,50);
+  return(
+    <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div className="modal-box">
+        <div className="modal-header"><div><div style={{fontSize:'1.1rem',fontWeight:700}}><span style={{color:C.yellow}}>⚑</span> Audit: {audit.label}</div><div style={{fontSize:'.72rem',color:'var(--t3)',marginTop:2}}>Sursa: {audit.source}</div></div><button className="modal-close" onClick={onClose}>&times;</button></div>
+        <div className="modal-body">
+          <div className="audit-summary">
+            <div className="audit-summary-item"><div style={{fontSize:'.68rem',color:'var(--t3)',marginBottom:3}}>AFISAT</div><div style={{fontSize:'1.3rem',fontWeight:800,color:C.blue}}>{typeof audit.value==='number'?ff(Math.round(audit.value)):audit.value}</div></div>
+            <div className="audit-summary-item"><div style={{fontSize:'.68rem',color:'var(--t3)',marginBottom:3}}>RECALCULAT</div><div style={{fontSize:'1.3rem',fontWeight:800,color:C.cyan}}>{typeof audit.computedValue==='number'?ff(Math.round(audit.computedValue)):audit.computedValue}</div></div>
+            <div className="audit-summary-item"><div style={{fontSize:'.68rem',color:'var(--t3)',marginBottom:3}}>STATUS</div><div style={{fontSize:'1.3rem',fontWeight:800}} className={audit.match?'audit-match':'audit-mismatch'}>{audit.match?'MATCH ✓':'MISMATCH ✗'}</div>{!audit.match&&<div style={{fontSize:'.7rem',color:C.red}}>Dif: {ff(Math.abs(audit.value-audit.computedValue))}</div>}</div>
+          </div>
+          <div className="audit-section"><div className="audit-section-title">⚡ Formula</div><div className="formula-box">{audit.formula}</div><div className="formula-box" style={{color:'var(--t2)',fontSize:'.78rem'}}>{audit.formulaDetail}</div></div>
+          {audit.breakdown?.length>0&&<div className="audit-section"><div className="audit-section-title">⚡ Breakdown</div>
+            <table><thead><tr>{Object.keys(typeof audit.breakdown[0]==='object'?audit.breakdown[0]:{}).map(k=><th key={k}>{k}</th>)}</tr></thead>
+              <tbody>{audit.breakdown.slice(0,20).map((row,i)=><tr key={i}>{Object.values(row).map((v,j)=><td key={j} style={{fontWeight:j===0?600:400}}>{typeof v==='number'?ff(Math.round(v)):String(v)}</td>)}</tr>)}</tbody></table></div>}
+          {audit.transactions?.length>0&&<div className="audit-section">
+            <div className="audit-section-title" style={{justifyContent:'space-between'}}><span>⚡ Tranzactii ({txF.length})</span><input className="search-input" placeholder="Cauta..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+            <div style={{maxHeight:350,overflowY:'auto',border:'1px solid var(--brd)',borderRadius:10}}>
+              <table><thead><tr>{audit.transactions[0].client!==undefined&&<th>Client</th>}{audit.transactions[0].description!==undefined&&<th>Descriere</th>}{audit.transactions[0].service!==undefined&&<th>Serviciu</th>}{audit.transactions[0].category!==undefined&&<th>Categorie</th>}<th style={{textAlign:'right'}}>Suma</th>{audit.transactions[0].manager!==undefined&&<th>Manager</th>}{audit.transactions[0].date!==undefined&&<th>Data</th>}</tr></thead>
+                <tbody>{txS.map((t,i)=><tr key={i}>{t.client!==undefined&&<td style={{fontWeight:500,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.client}</td>}{t.description!==undefined&&<td>{t.description}</td>}{t.service!==undefined&&<td><span className="bb" style={{fontSize:'.7rem'}}>{t.service}</span></td>}{t.category!==undefined&&<td><span className="bp">{t.category}</span></td>}<td style={{textAlign:'right',fontWeight:600,color:t.amount>=0?C.green:C.blue}}>{ff(t.amount)}</td>{t.manager!==undefined&&<td style={{color:'var(--t3)'}}>{t.manager}</td>}{t.date!==undefined&&<td style={{color:'var(--t3)',fontSize:'.76rem'}}>{t.date}</td>}</tr>)}</tbody></table>
+              {txF.length>50&&!showAll&&<div style={{padding:10,textAlign:'center'}}><button className="btn-o" onClick={()=>setShowAll(true)}>Arata toate ({txF.length})</button></div>}
+            </div></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+function KPI({label,value,suffix='',prefix='',change,changeLabel,color='blue',subtitle,auditKey,onAudit}){
+  const cm={blue:C.blue,green:C.green,red:C.red,yellow:C.yellow,purple:C.purple,cyan:C.cyan};const clr=cm[color]||C.blue;
+  return(<div className="kpi-card fade" onClick={()=>auditKey&&onAudit&&onAudit(auditKey)} style={{borderTop:`2px solid ${clr}`,cursor:auditKey?'pointer':'default'}}>
+    <div className="kpi-label">{label}</div>
+    <div className="kpi-value" style={{color:clr}}>{prefix}{typeof value==='number'?ff(value):value}<span style={{fontSize:'.9rem',fontWeight:500,marginLeft:3}}>{suffix}</span></div>
+    {subtitle&&<div style={{fontSize:'.76rem',color:'var(--t3)',marginTop:3}}>{subtitle}</div>}
+    {change!=null&&<div style={{marginTop:5,display:'flex',alignItems:'center',gap:5}}><span className={parseFloat(change)>=0?'bg':'br'}>{parseFloat(change)>=0?'↑':'↓'} {Math.abs(parseFloat(change))}%</span>{changeLabel&&<span style={{fontSize:'.7rem',color:'var(--t3)'}}>{changeLabel}</span>}</div>}
+    {auditKey&&<div className="audit-hint">⚑ Audit</div>}
+  </div>)
+}
+function Settings({config,setConfig,onConnect,status}){
+  const[show,setShow]=useState(false);const[guide,setGuide]=useState(false);
+  return(<div style={{position:'relative'}}>
+    <button className="btn-o" onClick={()=>setShow(!show)} style={{display:'flex',alignItems:'center',gap:5}}>
+      Conexiune Date {status==='connected'&&<span style={{width:6,height:6,borderRadius:'50%',background:C.green,display:'inline-block'}}/>}
+    </button>
+    {show&&<div className="card fade" style={{position:'absolute',right:0,top:'calc(100% + 6px)',width:420,zIndex:100,padding:18}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <div style={{fontSize:'.88rem',fontWeight:600}}>Apps Script Proxy</div>
+        <button className="btn-o" onClick={()=>setGuide(!guide)} style={{fontSize:'.7rem'}}>{guide?'Ascunde ghid':'Ghid setup'}</button>
+      </div>
+      {guide&&<div style={{background:'#0d1117',border:'1px solid var(--brd)',borderRadius:10,padding:14,marginBottom:14,fontSize:'.75rem',color:'var(--t2)',lineHeight:1.7}}>
+        <b style={{color:'var(--t1)'}}>Setup (5 min):</b><br/>
+        1. Deschide Google Sheet (Incasari)<br/>
+        2. Extensions &rarr; Apps Script<br/>
+        3. Paste codul din <b>Microalpha_Apps-Script-Proxy.js</b><br/>
+        4. Modifica <code style={{color:C.cyan}}>SECRET_TOKEN</code> in script<br/>
+        5. Deploy &rarr; New deployment &rarr; Web app<br/>
+        6. Execute as: Me / Who has access: Anyone<br/>
+        7. Copiaza URL-ul si pune-l mai jos<br/>
+        8. Pune acelasi token si aici<br/><br/>
+        <span style={{color:C.green}}>&#10003;</span> Sheet-ul ramane <b>PRIVAT</b>. Scriptul ruleaza sub contul tau. Doar requesturile cu token valid primesc date.
+      </div>}
+      <div style={{marginBottom:10}}><label style={{fontSize:'.72rem',color:'var(--t3)',display:'block',marginBottom:3}}>Apps Script URL</label><input className="inp" placeholder="https://script.google.com/macros/s/AKf.../exec" value={config.scriptUrl} onChange={e=>setConfig({...config,scriptUrl:e.target.value})}/></div>
+      <div style={{marginBottom:12}}><label style={{fontSize:'.72rem',color:'var(--t3)',display:'block',marginBottom:3}}>Secret Token</label><input className="inp" type="password" placeholder="Token-ul din script" value={config.token} onChange={e=>setConfig({...config,token:e.target.value})}/></div>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <button className="btn" onClick={()=>{onConnect();setShow(false)}}>Conecteaza</button>
+        {status==='connected'&&<span className="bg badge">Conectat securizat</span>}
+        {status==='error'&&<span className="br badge">Eroare</span>}
+        {status==='loading'&&<span className="by badge pulse">Se conecteaza...</span>}
+      </div>
+    </div>}
+  </div>);
+}
+function OverviewTab({data,oA}){
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload sau importa un extras bancar.</p></div>);
+  const l=data.months[data.months.length-1],p=data.months.length>1?data.months[data.months.length-2]:null;
+  const tR=data.months.reduce((s,m)=>s+m.totalIncasari,0);
+  // Source of truth: buildSubscriberList
+  const subsList=useMemo(()=>buildSubscriberList(data),[data]);
+  const tS=subsList.length;
+  const tA=subsList.filter(s=>s.currentType==='annual').length;
+  const tM=subsList.filter(s=>s.currentType==='monthly').length;
+  const arpu=tS>0?tR/tS:0,arr=l.mrr*12,rw=l.cashBalance>0?l.cashBalance/(data.months.filter(m=>m.expenses.total>0).reduce((s,m)=>s+m.expenses.total,0)/Math.max(1,data.months.filter(m=>m.expenses.total>0).length)):Infinity;
+  const prevUniqueS=p?new Set(p.transactions.filter(t=>t.type==='annual'||t.type==='monthly').map(t=>t.client)).size:null;
+  const currUniqueS=new Set(l.transactions.filter(t=>t.type==='annual'||t.type==='monthly').map(t=>t.client)).size;
+  const mg=p?gw(l.mrr,p.mrr):null,sg=prevUniqueS?gw(currUniqueS,prevUniqueS):null,br=data.months.filter(m=>m.expenses.total>0).reduce((s,m)=>s+m.expenses.total,0)/Math.max(1,data.months.filter(m=>m.expenses.total>0).length);
+  const cd=data.months.map(m=>({name:MS[m.month-1],revenue:m.totalIncasari,expenses:m.expenses.total}));
+  return(<div className="fade">
+    <div className="g6" style={{marginBottom:20}}>
+      <KPI label="Total Revenue" value={tR} suffix="RON" color="blue" subtitle={`${data.months.length} luni`} auditKey="totalRevenue" onAudit={oA}/>
+      <KPI label="MRR Curent" value={Math.round(l.mrr)} suffix="RON" color="green" change={mg} changeLabel="MoM" auditKey="mrr" onAudit={oA}/>
+      <KPI label="ARR" value={Math.round(arr)} suffix="RON" color="purple" auditKey="arr" onAudit={oA}/>
+      <KPI label="Abonati" value={tS} color="cyan" change={sg} changeLabel="MoM" auditKey="subscribers" onAudit={oA}/>
+      <KPI label="ARPU" value={Math.round(arpu)} suffix="RON" color="yellow" auditKey="arpu" onAudit={oA}/>
+      <KPI label="Cash Balance" value={Math.round(l.cashBalance)} suffix="RON" color="green" subtitle={rw!==Infinity?`Runway: ${Math.round(rw)} luni`:'Runway: ∞'} auditKey="cashBalance" onAudit={oA}/>
+    </div>
+    <div className="g2" style={{marginBottom:20}}>
+      <div className="card"><div style={{fontWeight:600,marginBottom:14}}>Revenue</div>
+        <ResponsiveContainer width="100%" height={250}><ComposedChart data={cd}><defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.blue} stopOpacity={.3}/><stop offset="100%" stopColor={C.blue} stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Area type="monotone" dataKey="revenue" fill="url(#rg)" stroke={C.blue} strokeWidth={2.5} name="Revenue"/><Bar dataKey="expenses" fill={C.red} opacity={.6} radius={[4,4,0,0]} name="Cheltuieli" barSize={28}/></ComposedChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>MRR Trend</div>
+        <ResponsiveContainer width="100%" height={250}><AreaChart data={data.months.map(m=>({name:MS[m.month-1],mrr:m.mrr}))}><defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.green} stopOpacity={.3}/><stop offset="100%" stopColor={C.green} stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Area type="monotone" dataKey="mrr" fill="url(#mg)" stroke={C.green} strokeWidth={2.5}/></AreaChart></ResponsiveContainer></div>
+    </div>
+    <div className="g3">
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Subscriber Mix</div>
+        <ResponsiveContainer width="100%" height={180}><PieChart><Pie data={[{name:'Annual',value:tA},{name:'Monthly',value:tM}]} cx="50%" cy="50%" labelLine={true} label={e=>`${e.name} ${e.value}`} outerRadius={55} fill="#8884d8" dataKey="value">{[C.blue,C.purple].map((c,i)=><Cell key={i} fill={c}/>)}</Pie></PieChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Revenue/Luna</div>
+        <ResponsiveContainer width="100%" height={180}><BarChart data={cd}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Bar dataKey="revenue" fill={C.blue} radius={[4,4,0,0]} name="Revenue"/></BarChart></ResponsiveContainer></div>
+      <div className="card" style={{padding:14}}>
+        <div style={{fontWeight:600,marginBottom:12,fontSize:'.88rem'}}>Quick Metrics</div>
+        {[{l:'Revenue Growth',v:p?`${gw(l.totalIncasari,p.totalIncasari)}%`:'N/A',c:C.green},{l:'MRR Growth',v:mg?`${mg}%`:'N/A',c:C.green},{l:'Annual %',v:`${pct(data.months.reduce((s,m)=>s+m.annualSubs,0),tS)}%`,c:C.blue},{l:'Avg Rev/Luna',v:`${ff(Math.round(tR/data.months.length))}`,c:C.yellow},{l:'Burn Rate',v:br>0?`${ff(Math.round(br))}/luna`:'N/A',c:C.red}].map((m,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',marginBottom:9,fontSize:'.79rem'}}><span style={{color:'var(--t2)'}}>{m.l}</span><span style={{fontWeight:700,color:m.c}}>{m.v}</span></div>)}
+      </div>
+    </div>
+  </div>)
+}
+function RevenueTab({data,oA}){
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
+  const tar=data.months.reduce((s,m)=>s+m.transactions.filter(t=>t.type==='annual').reduce((a,t)=>a+t.amount,0),0);
+  const tmr=data.months.reduce((s,m)=>s+m.transactions.filter(t=>t.type==='monthly').reduce((a,t)=>a+t.amount,0),0);
+  const cd=data.months.map(m=>{const ar=m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount,0),mr=m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0);return{name:MS[m.month-1],annual:ar,monthly:mr,arr:m.mrr*12}});
+  return(<div className="fade">
+    <div className="g4" style={{marginBottom:20}}>
+      <KPI label="Revenue YTD" value={tar+tmr} suffix="RON" color="blue" auditKey="totalRevenue" onAudit={oA}/>
+      <KPI label="Anuali" value={tar} suffix="RON" color="purple" subtitle={`${pct(tar,tar+tmr)}%`} auditKey="totalRevenue" onAudit={oA}/>
+      <KPI label="Lunari" value={tmr} suffix="RON" color="cyan" subtitle={`${pct(tmr,tar+tmr)}%`} auditKey="totalRevenue" onAudit={oA}/>
+      <KPI label="ARR" value={Math.round(cd[cd.length-1].arr)} suffix="RON" color="green" auditKey="arr" onAudit={oA}/>
+    </div>
+    <div className="g2" style={{marginBottom:20}}>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Annual vs Monthly</div>
+        <ResponsiveContainer width="100%" height={200}><BarChart data={cd}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Bar dataKey="annual" fill={C.blue} name="Annual" stackId="a"/><Bar dataKey="monthly" fill={C.purple} name="Monthly" stackId="a"/></BarChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>MRR + ARR</div>
+        <ResponsiveContainer width="100%" height={200}><ComposedChart data={data.months.map(m=>({name:MS[m.month-1],mrr:m.mrr,arr:m.mrr*12}))}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis yAxisId="left" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><YAxis yAxisId="right" orientation="right" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Bar yAxisId="left" dataKey="mrr" fill={C.blue} name="MRR"/><Line yAxisId="right" type="monotone" dataKey="arr" stroke={C.green} name="ARR" strokeWidth={2}/></ComposedChart></ResponsiveContainer></div>
+    </div>
+    <div className="card">
+      <table style={{fontSize:'.8rem'}}>
+        <thead><tr><th>Luna</th><th>Incasari</th><th>Anuali</th><th>Lunari</th><th>#An</th><th>#Lu</th><th>MRR</th><th>MoM%</th></tr></thead>
+        <tbody>{data.months.map((m,i)=>{const p=i>0?data.months[i-1]:null;const ar=m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount,0),mr=m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0);const mrrGrow=p?gw(m.mrr,p.mrr):'N/A';return <tr key={i} onClick={()=>oA('totalRevenue')} style={{cursor:'pointer'}}><td>{m.name}</td><td style={{fontWeight:600}}>{ff(m.totalIncasari)}</td><td>{ff(ar)}</td><td>{ff(mr)}</td><td>{m.annualSubs}</td><td>{m.monthlySubs}</td><td style={{fontWeight:600}}>{ff(Math.round(m.mrr))}</td><td style={{color:parseFloat(mrrGrow)>=0?C.green:C.red}}>{mrrGrow}%</td></tr>})}
+        </tbody>
+      </table>
+    </div>
+  </div>)
+}
+function SubscribersTab({data,oA}){
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
+  // Source of truth: buildSubscriberList — fiecare client apare o singura data cu currentType
+  const subsList=buildSubscriberList(data);
+  const tS=subsList.length;
+  const tA=subsList.filter(s=>s.currentType==='annual').length;
+  const tM=subsList.filter(s=>s.currentType==='monthly').length;
+  const totalRev=data.months.reduce((s,m)=>s+m.totalIncasari,0);
+  const ar=subsList.filter(s=>s.currentType==='annual').reduce((s,c)=>s+c.totalNet,0);
+  const arpu=tS>0?totalRev/tS:0;
+  let cum=0;const cumd=data.months.map(m=>{cum+=m.newSubscribers;return{name:MS[m.month-1],total:cum}});
+  return(<div className="fade">
+    <div className="g6" style={{marginBottom:20}}>
+      <KPI label="Total" value={tS} color="cyan" auditKey="subscribers" onAudit={oA}/>
+      <KPI label="Anuali" value={tA} color="blue" subtitle={`${pct(tA,tS)}%`} auditKey="subscribers" onAudit={oA}/>
+      <KPI label="Lunari" value={tM} color="purple" subtitle={`${pct(tM,tS)}%`} auditKey="subscribers" onAudit={oA}/>
+      <KPI label="ARPU" value={Math.round(arpu)} suffix="RON" color="yellow" auditKey="arpu" onAudit={oA}/>
+      <KPI label="ARPU Anual" value={tA>0?Math.round(ar/tA):0} suffix="RON" color="blue"/>
+      <KPI label="LTV Est." value={Math.round(arpu*12)} suffix="RON" color="green" subtitle="ARPUx12"/>
+    </div>
+    <div className="g2" style={{marginBottom:20}}>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Noi/Luna (Stacked)</div>
+        <ResponsiveContainer width="100%" height={200}><BarChart data={data.months.map(m=>({name:MS[m.month-1],annual:m.annualSubs,monthly:m.monthlySubs}))}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><Tooltip content={<CT unit="clienți"/>}/><Bar dataKey="annual" fill={C.blue} name="Annual" stackId="a"/><Bar dataKey="monthly" fill={C.purple} name="Monthly" stackId="a"/></BarChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Cumulative</div>
+        <ResponsiveContainer width="100%" height={200}><AreaChart data={cumd}><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.cyan} stopOpacity={.3}/><stop offset="100%" stopColor={C.cyan} stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><Tooltip content={<CT unit="clienți"/>}/><Area type="monotone" dataKey="total" fill="url(#cg)" stroke={C.cyan} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
+    </div>
+    <div className="card"><h3 style={{marginBottom:12,fontSize:'.9rem'}}>Cohort Retention</h3>
+      <table style={{fontSize:'.75rem'}}>
+        <thead><tr><th>Cohort</th>{data.months.slice(1).map((m,i)=><th key={i}>{m.name}</th>)}<th>Avg Retention</th></tr></thead>
+        <tbody>{data.months.map((cohortMonth,cohortIdx)=>{
+          const cohortClients=new Set(cohortMonth.transactions.filter(t=>t.type==='annual'||t.type==='monthly').map(t=>t.client));
+          const cohortSize=cohortClients.size;
+          if(cohortSize===0)return null;
+          const laterMonths=data.months.slice(cohortIdx+1);
+          if(laterMonths.length===0)return<tr key={cohortIdx}><td>{cohortMonth.name}</td><td colSpan={data.months.length} style={{color:'var(--t3)'}}>—</td></tr>;
+          const retentions=laterMonths.map(m=>{
+            const retainedClients=new Set(m.transactions.filter(t=>(t.type==='annual'||t.type==='monthly')&&cohortClients.has(t.client)).map(t=>t.client));
+            return Math.round((retainedClients.size/cohortSize)*100);
+          });
+          const avgRet=Math.round(retentions.reduce((s,v)=>s+v,0)/retentions.length);
+          return<tr key={cohortIdx}>
+            <td>{cohortMonth.name}</td>
+            {retentions.map((r,mIdx)=><td key={mIdx} style={{color:r>=50?C.green:r>=25?C.yellow:C.red}}>{r}%</td>)}
+            <td style={{fontWeight:600}}>{avgRet}%</td>
+          </tr>;
+        }).filter(Boolean)}</tbody>
+      </table>
+    </div>
+    <SubscriberTable data={data}/>
+  </div>)
+}
+function buildSubscriberList(data){
+  if(!data.months||data.months.length===0)return[];
+  const subs={};
+  data.months.forEach(m=>{
+    m.transactions.forEach(t=>{
+      if(t.type!=='annual'&&t.type!=='monthly')return;
+      const key=t.client;
+      if(!subs[key]){
+        subs[key]={client:t.client,payments:[]};
+      }
+      subs[key].payments.push({date:t.date,amount:t.amount,service:t.service||t.contract||'-',month:m.name,monthNum:m.month,year:m.year||new Date().getFullYear(),type:t.type});
+    });
+  });
+  return Object.values(subs).map(s=>{
+    s.payments.sort((a,b)=>new Date(a.date)-new Date(b.date));
+    // Plati pozitive si negative separate
+    const posPayments=s.payments.filter(p=>p.amount>0);
+    const negPayments=s.payments.filter(p=>p.amount<0);
+    const totalNet=s.payments.reduce((sum,p)=>sum+p.amount,0);
+    const negSum=negPayments.reduce((sum,p)=>sum+p.amount,0);
+    // Prima si ultima plata pozitiva — definesc abonamentul real
+    const firstPos=posPayments.length>0?posPayments[0]:s.payments[0];
+    const lastPos=posPayments.length>0?posPayments[posPayments.length-1]:s.payments[s.payments.length-1];
+    // Tipul curent = ultima plata pozitiva (source of truth)
+    const currentType=lastPos.type||firstPos.type||'monthly';
+    const validity=currentType==='annual'?365:30;
+    const expiry=new Date(new Date(lastPos.date).getTime()+validity*86400000);
+    const now=new Date();
+    const daysLeft=Math.floor((expiry-now)/86400000);
+    const isExpired=daysLeft<0;
+    // Renewed = are mai mult de o plata pozitiva
+    const renewed=posPayments.length>1;
+    const renewPay=renewed?lastPos:null;
+    const renewAmount=renewPay?renewPay.amount:0;
+    // Upgrade = monthly→annual, Downgrade = annual→monthly (schimbare tip abonament)
+    const firstType=firstPos.type||'monthly';
+    const lastType=lastPos.type||'monthly';
+    const isUpgrade=renewed&&firstType==='monthly'&&lastType==='annual';
+    const isDowngrade=renewed&&firstType==='annual'&&lastType==='monthly';
+    const upgradeAmt=isUpgrade?lastPos.amount:0;
+    const downgradeAmt=isDowngrade?lastPos.amount:0;
+    // Churn: DOAR daca suma totala neta <= 0 SAU contract expirat
+    const isChurn=totalNet<=0||(isExpired&&posPayments.length>0);
+    const churnAmt=isChurn?(totalNet<=0?totalNet:-lastPos.amount):0;
+    // Status: bazat pe suma neta, expirare si schimbare tip
+    let status;
+    if(totalNet<=0)status='Churn';
+    else if(isExpired)status='Churn';
+    else if(isUpgrade)status='Upgrade';
+    else if(isDowngrade)status='Downgrade';
+    else if(daysLeft<=7)status='Pending';
+    else status='Active';
+    const renewMonth=MRO[expiry.getMonth()]+' '+expiry.getFullYear();
+    return{
+      client:s.client,produs:firstPos.service||'-',firstDate:firstPos.date,firstAmount:firstPos.amount,
+      currentType,
+      expiry:expiry.toISOString().split('T')[0],
+      renewed:renewed?'DA':'NU',
+      renewDate:renewPay?renewPay.date:'-',
+      renewProduct:renewPay?renewPay.service:'-',
+      renewAmount,upgradeAmt,downgradeAmt,
+      churnAmt:status==='Churn'?negSum||(-lastPos.amount):0,showChurn:status==='Churn',
+      status,renewMonth,totalNet,
+      payments:s.payments
+    };
+  }).sort((a,b)=>a.client.localeCompare(b.client));
+}
+function SubscriberTable({data}){
+  const[search,setSearch]=useState('');
+  const[statusFilter,setStatusFilter]=useState('all');
+  const subs=useMemo(()=>buildSubscriberList(data),[data]);
+  const filtered=subs.filter(s=>{
+    if(search&&!s.client.toLowerCase().includes(search.toLowerCase())&&!s.produs.toLowerCase().includes(search.toLowerCase()))return false;
+    if(statusFilter!=='all'&&s.status!==statusFilter)return false;
+    return true;
+  });
+  if(subs.length===0)return null;
+  const statusCounts={Active:0,Pending:0,Upgrade:0,Downgrade:0,Churn:0};
+  subs.forEach(s=>{if(statusCounts[s.status]!==undefined)statusCounts[s.status]++});
+  const stColor={Active:'bg',Pending:'by',Upgrade:'bg',Downgrade:'by',Churn:'br'};
+  return(<div className="card" style={{marginTop:20}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <h3 style={{fontSize:'.9rem'}}>Lista Subscribers ({filtered.length}/{subs.length})</h3>
+      <div style={{display:'flex',gap:8}}>
+        <input className="search-input" placeholder="Cauta client/produs..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:200}}/>
+        <select className="cat-sel" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+          <option value="all">Toate ({subs.length})</option>
+          {Object.entries(statusCounts).map(([k,v])=><option key={k} value={k}>{k} ({v})</option>)}
+        </select>
+      </div>
+    </div>
+    <div style={{overflowX:'auto'}}>
+      <table><thead><tr>
+        <th>#</th><th>Client</th><th>Produs</th><th>Data prima plata</th><th style={{textAlign:'right'}}>Suma</th>
+        <th>Data expirare</th><th>Reinnoit</th><th>Data reinnoire</th><th>Produs reinnoit</th>
+        <th style={{textAlign:'right'}}>Upgrade</th>
+        <th style={{textAlign:'right'}}>Downgrade</th><th style={{textAlign:'right'}}>Churn</th>
+        <th>Status</th><th>Luna reinnoire</th>
+      </tr></thead>
+      <tbody>{filtered.map((s,i)=><tr key={i}>
+        <td style={{fontSize:'.76rem',color:'var(--t3)'}}>{i+1}</td>
+        <td style={{fontWeight:600,fontSize:'.8rem'}}>{s.client}</td>
+        <td style={{fontSize:'.78rem'}}>{s.produs}</td>
+        <td style={{fontSize:'.76rem',color:'var(--t3)'}}>{s.firstDate}</td>
+        <td style={{textAlign:'right',fontWeight:600}}>{ff(s.firstAmount)}</td>
+        <td style={{fontSize:'.76rem',color:s.status==='Churn'?C.red:s.status==='Pending'?C.yellow:'var(--t3)'}}>{s.expiry}</td>
+        <td><span className={s.renewed==='DA'?'bg':'br'}>{s.renewed}</span></td>
+        <td style={{fontSize:'.76rem',color:'var(--t3)'}}>{s.renewDate}</td>
+        <td style={{fontSize:'.78rem'}}>{s.renewProduct}</td>
+        <td style={{textAlign:'right',color:s.upgradeAmt>0?C.green:'var(--t3)'}}>{s.upgradeAmt>0?ff(s.upgradeAmt)+' RON':'-'}</td>
+        <td style={{textAlign:'right',color:s.downgradeAmt>0?C.yellow:'var(--t3)'}}>{s.downgradeAmt>0?'-'+ff(s.downgradeAmt):'-'}</td>
+        <td style={{textAlign:'right',color:s.showChurn?C.red:'var(--t3)'}}>{s.showChurn?ff(s.churnAmt):'-'}</td>
+        <td><span className={stColor[s.status]||'by'}>{s.status}</span></td>
+        <td style={{fontSize:'.78rem'}}>{s.renewMonth}</td>
+      </tr>)}</tbody>
+      </table>
+    </div>
+  </div>);
+}
+function RenewalsTab({data,oA,audits}){
+  const[filter,setFilter]=useState(30);
+  const ren=data.renewals||{total:0,nextMonthDue:0,byStatus:{Pending:0,Renewed:0,Churned:0},clients:[]};
+  const churnRate=audits?.churnRate?.value??0;
+  const nrr=audits?.nrr?.value??0;
+  const grr=audits?.grr?.value??0;
+  const filtered=(ren.clients||[]).filter(c=>c.daysLeft!=null&&c.daysLeft>=0&&c.daysLeft<=filter);
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
+  return(<div className="fade">
+    <div className="g4" style={{marginBottom:20}}>
+      <KPI label="Contracte" value={ren.total} color="blue" auditKey="renewals" onAudit={oA}/>
+      <KPI label="Due Luna" value={ren.nextMonthDue} color="cyan" auditKey="renewals" onAudit={oA}/>
+      <KPI label="Churn Rate" value={churnRate.toFixed?churnRate.toFixed(1):'0'} suffix="%" color="red" auditKey="churnRate" onAudit={oA}/>
+      <KPI label="NRR / GRR" value={`${nrr.toFixed?nrr.toFixed(1):'0'}% / ${grr.toFixed?grr.toFixed(1):'0'}%`} color="green" auditKey="nrr" onAudit={oA}/>
+    </div>
+    <div style={{marginBottom:16,display:'flex',gap:8}}>
+      {[30,60,90].map(d=><button key={d} className={`btn${filter===d?'':'-o'}`} onClick={()=>setFilter(d)} style={{padding:'7px 14px',fontSize:'.78rem'}}>{d}d</button>)}
+    </div>
+    <div className="g2" style={{marginBottom:20}}>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Status Contracte</div>
+        <ResponsiveContainer width="100%" height={180}><PieChart><Pie data={[{name:'Pending',value:ren.byStatus.Pending||0},{name:'Renewed',value:ren.byStatus.Renewed||0},{name:'Churned',value:ren.byStatus.Churned||0}]} cx="50%" cy="50%" labelLine={false} label={e=>e.value>0?`${e.name} ${e.value}`:''} outerRadius={60} fill="#8884d8" dataKey="value">{[C.yellow,C.green,C.red].map((c,i)=><Cell key={i} fill={c}/>)}</Pie></PieChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Due in {filter} zile ({filtered.length})</div>
+        <div style={{maxHeight:200,overflowY:'auto'}}>
+          {filtered.length===0?<div style={{fontSize:'.8rem',color:'var(--t3)',padding:20,textAlign:'center'}}>Nicio reinnoire in urmatoarele {filter} zile</div>:
+          <table><thead><tr><th>Client</th><th>Tip</th><th>Zile</th><th style={{textAlign:'right'}}>Valoare</th></tr></thead>
+          <tbody>{filtered.sort((a,b)=>a.daysLeft-b.daysLeft).map((c,i)=><tr key={i}><td style={{fontSize:'.8rem'}}>{c.name}</td><td><span className={c.type==='annual'?'bb':'bp'}>{c.type}</span></td><td style={{color:c.daysLeft<=7?C.red:c.daysLeft<=14?C.yellow:C.green,fontWeight:600}}>{c.daysLeft}d</td><td style={{textAlign:'right',fontWeight:600}}>{ff(c.amount)}</td></tr>)}</tbody>
+          </table>}
+        </div>
+      </div>
+    </div>
+  </div>)
+}
+function AuditTab({audits,openA}){
+  const al=Object.values(audits),mc=al.filter(a=>a.match).length,mm=al.filter(a=>!a.match).length;
+  return(<div className="fade">
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <div><div style={{fontSize:'1.2rem',fontWeight:800,color:C.yellow}}>&#9673; Audit &amp; Reconciliere</div><div style={{fontSize:'.76rem',color:'var(--t3)',marginTop:2}}>Verificare permanenta a tuturor metricilor</div></div>
+      <div style={{fontSize:'.72rem',color:'var(--t3)'}}>{new Date().toLocaleString('ro-RO')}</div>
+    </div>
+    <div className="g3" style={{marginBottom:18}}>
+      <div className="card" style={{textAlign:'center',borderColor:'rgba(16,185,129,.3)'}}><div style={{fontSize:'2rem',fontWeight:800,color:C.green}}>{mc}</div><div style={{fontSize:'.76rem',color:C.green}}>MATCH</div></div>
+      <div className="card" style={{textAlign:'center',borderColor:mm>0?'rgba(239,68,68,.3)':'var(--brd)'}}><div style={{fontSize:'2rem',fontWeight:800,color:mm>0?C.red:C.green}}>{mm}</div><div style={{fontSize:'.76rem',color:mm>0?C.red:'var(--t3)'}}>MISMATCH</div></div>
+      <div className="card" style={{textAlign:'center'}}><div style={{fontSize:'2rem',fontWeight:800,color:C.blue}}>{al.length}</div><div style={{fontSize:'.76rem',color:'var(--t2)'}}>Total auditate</div></div>
+    </div>
+    <div className="card"><div style={{fontWeight:600,marginBottom:14}}>Reconciliere</div>
+      <table><thead><tr><th>Metrica</th><th>Afisat</th><th>Recalculat</th><th>Status</th><th>Formula</th><th>Sursa</th><th></th></tr></thead>
+        <tbody>{al.map((a,i)=><tr key={i} style={{cursor:'pointer'}} onClick={()=>openA(a.id)}>
+          <td style={{fontWeight:600}}>{a.label}</td>
+          <td style={{fontWeight:600,color:C.blue}}>{typeof a.value==='number'?ff(Math.round(a.value)):a.value}</td>
+          <td style={{fontWeight:600,color:C.cyan}}>{typeof a.computedValue==='number'?ff(Math.round(a.computedValue)):a.computedValue}</td>
+          <td><span className={a.match?'bg':'br'} style={{fontWeight:700}}>{a.match?'MATCH ✓':'MISMATCH ✗'}</span></td>
+          <td style={{fontSize:'.72rem',color:'var(--t3)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.formula}</td>
+          <td style={{fontSize:'.72rem',color:'var(--t3)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.source}</td>
+          <td><button className="btn-o" style={{padding:'3px 8px',fontSize:'.7rem'}}>&#128269;</button></td>
+        </tr>)}</tbody></table></div>
+  </div>)
+}
+function PLTab({data,oA}){
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
+  const[expanded,setExpanded]=useState({venituri:true,cos:false,opex:true,capex:false});
+  const months=data.months;
+  const monthCols=months.map(m=>({name:m.name,short:MS[m.month-1],month:m.month}));
+  const allExpenseKeys=new Set();
+  months.forEach(m=>Object.keys(m.expenses.breakdown||{}).forEach(k=>allExpenseKeys.add(k)));
+  const getMonthValue=(monthIdx,category)=>{
+    const m=months[monthIdx];
+    if(category==='AbonamentAnual')return m.transactions.filter(t=>t.type==='annual').reduce((s,t)=>s+t.amount,0);
+    if(category==='AbonamentLunar')return m.transactions.filter(t=>t.type==='monthly').reduce((s,t)=>s+t.amount,0);
+    if(category==='AltVenituri')return m.transactions.filter(t=>t.type==='other').reduce((s,t)=>s+t.amount,0);
+    if(m.expenses.breakdown[category])return m.expenses.breakdown[category];
+    return 0;
+  };
+  return(<div className="fade">
+    <div className="card" style={{overflow:'auto'}}>
+      <table style={{fontSize:'.75rem'}}>
+        <thead><tr><th>Categorie</th>{monthCols.map((m,i)=><th key={i} style={{textAlign:'right'}}>{m.short}</th>)}<th style={{textAlign:'right'}}>Total</th></tr></thead>
+        <tbody>
+          <tr className="collapsible-header" onClick={()=>setExpanded({...expanded,venituri:!expanded.venituri})} style={{cursor:'pointer',fontWeight:700}}>
+            <td colSpan={monthCols.length+2} style={{padding:'10px'}}>▼ VENITURI</td>
+          </tr>
+          {expanded.venituri&&<>
+            <tr><td>Abonament Anual</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(getMonthValue(i,'AbonamentAnual'))}</td>)}<td style={{textAlign:'right',fontWeight:700}}>{ff(months.reduce((s,m)=>s+m.transactions.filter(t=>t.type==='annual').reduce((a,t)=>a+t.amount,0),0))}</td></tr>
+            <tr><td>Abonament Lunar</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(getMonthValue(i,'AbonamentLunar'))}</td>)}<td style={{textAlign:'right',fontWeight:700}}>{ff(months.reduce((s,m)=>s+m.transactions.filter(t=>t.type==='monthly').reduce((a,t)=>a+t.amount,0),0))}</td></tr>
+            <tr><td>Alte Venituri</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(getMonthValue(i,'AltVenituri'))}</td>)}<td style={{textAlign:'right',fontWeight:700}}>{ff(months.reduce((s,m)=>s+m.transactions.filter(t=>t.type==='other').reduce((a,t)=>a+t.amount,0),0))}</td></tr>
+            <tr style={{background:'rgba(59,130,246,.08)',fontWeight:700}}><td>=Total Venituri</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(months[i].totalIncasari)}</td>)}<td style={{textAlign:'right'}}>{ff(months.reduce((s,m)=>s+m.totalIncasari,0))}</td></tr>
+          </>}
+          <tr className="collapsible-header" onClick={()=>setExpanded({...expanded,cos:!expanded.cos})} style={{cursor:'pointer',fontWeight:700}}>
+            <td colSpan={monthCols.length+2} style={{padding:'10px'}}>▼ COS</td>
+          </tr>
+          {expanded.cos&&<>
+            <tr style={{background:'rgba(239,68,68,.08)',fontWeight:700}}><td>=Marja Bruta</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(months[i].totalIncasari)}</td>)}<td style={{textAlign:'right'}}>{ff(months.reduce((s,m)=>s+m.totalIncasari,0))}</td></tr>
+          </>}
+          <tr className="collapsible-header" onClick={()=>setExpanded({...expanded,opex:!expanded.opex})} style={{cursor:'pointer',fontWeight:700}}>
+            <td colSpan={monthCols.length+2} style={{padding:'10px'}}>▼ OPEX</td>
+          </tr>
+          {expanded.opex&&<>
+            {Array.from(allExpenseKeys).map((cat,idx)=><tr key={idx}><td>{cat}</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(getMonthValue(i,cat))}</td>)}<td style={{textAlign:'right'}}>{ff(months.reduce((s,m)=>s+(m.expenses.breakdown[cat]||0),0))}</td></tr>)}
+            <tr style={{background:'rgba(239,68,68,.08)',fontWeight:700}}><td>=Total OPEX</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(months[i].expenses.total)}</td>)}<td style={{textAlign:'right'}}>{ff(months.reduce((s,m)=>s+m.expenses.total,0))}</td></tr>
+            <tr style={{background:'rgba(16,185,129,.08)',fontWeight:700}}><td>EBITDA</td>{monthCols.map((m,i)=><td key={i} style={{textAlign:'right'}}>{ff(months[i].totalIncasari-months[i].expenses.total)}</td>)}<td style={{textAlign:'right'}}>{ff(months.reduce((s,m)=>s+(m.totalIncasari-m.expenses.total),0))}</td></tr>
+          </>}
+        </tbody>
+      </table>
+    </div>
+  </div>)
+}
+function CashflowTab({data,oA}){
+  if(!data.months||data.months.length===0)return(<div className="fade" style={{textAlign:'center',padding:60,color:'var(--t2)'}}><h3 style={{color:'var(--t1)',marginBottom:8}}>Nu sunt date</h3><p>Conecteaza Google Sheets din tab-ul Upload.</p></div>);
+  const months=data.months;
+  const latest=months[months.length-1];
+  const totalExp=months.reduce((s,m)=>s+m.expenses.total,0);
+  const runway=latest.cashBalance>0?latest.cashBalance/(totalExp/Math.max(1,months.filter(m=>m.expenses.total>0).length)):Infinity;
+  const expCat={};data.bankStatement.filter(t=>t.amount<0&&!t.excluded).forEach(t=>{const cat=t.expenseCategory||t.category||'Necategorizat';expCat[cat]=(expCat[cat]||0)+Math.abs(t.amount)});
+  return(<div className="fade">
+    <div className="g4" style={{marginBottom:20}}>
+      <KPI label="Cash Balance" value={Math.round(latest.cashBalance)} suffix="RON" color="green" auditKey="cashBalance" onAudit={oA}/>
+      <KPI label="Capital Social" value={months.reduce((s,m)=>s+m.capitalInflows,0)} suffix="RON" color="blue"/>
+      <KPI label="Cheltuieli" value={Math.round(totalExp)} suffix="RON" color="red" auditKey="expenses" onAudit={oA}/>
+      <KPI label="Runway" value={runway!==Infinity?Math.round(runway):'∞'} suffix={runway!==Infinity?"luni":""} color={runway<3?'red':'green'} auditKey="burnRate" onAudit={oA}/>
+    </div>
+    <div className="g2" style={{marginBottom:20}}>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Cash Flow</div>
+        <ResponsiveContainer width="100%" height={200}><BarChart data={months.map(m=>({name:MS[m.month-1],intrari:m.cashInflows,iesiri:m.expenses.total}))}><CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/><XAxis dataKey="name" tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#64748b',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>fmt(v)}/><Tooltip content={<CT unit="RON"/>}/><Bar dataKey="intrari" fill={C.green} name="Intrari"/><Bar dataKey="iesiri" fill={C.red} name="Iesiri"/></BarChart></ResponsiveContainer></div>
+      <div className="card"><div style={{fontWeight:600,marginBottom:12}}>Cheltuieli</div>
+        <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={Object.entries(expCat).map(([name,value])=>({name,value}))} cx="50%" cy="50%" labelLine={false} label={e=>`${e.name} ${ff(e.value)}`} outerRadius={60} fill="#8884d8" dataKey="value">{PC.map((c,i)=><Cell key={i} fill={c}/>)}</Pie></PieChart></ResponsiveContainer></div>
+    </div>
+    <div className="card" style={{overflow:'auto'}}>
+      <table style={{fontSize:'.75rem'}}>
+        <thead><tr><th>Data</th><th>Descriere</th><th>Tip</th><th style={{textAlign:'right'}}>Suma</th><th>Categorie</th></tr></thead>
+        <tbody>{data.bankStatement.filter(t=>!t.excluded).slice(0,20).map((t,i)=><tr key={i}><td style={{fontSize:'.7rem'}}>{t.date}</td><td style={{maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.description}</td><td><span className="bp" style={{fontSize:'.7rem'}}>{t.type}</span></td><td style={{textAlign:'right',fontWeight:600,color:t.amount>=0?C.green:C.red}}>{ff(t.amount)}</td><td><span className="by" style={{fontSize:'.7rem'}}>{t.category}</span></td></tr>)}</tbody>
+      </table>
+    </div>
+  </div>)
+}
+const INCOME_TYPES=['Procesator Plăți','Capital Social','Transfer Direct Client','Altele'];
+const EXPENSE_CATS=['IT','Legal','Operational','Subscriptions','Marketing','HR','Birouri','Advertising','Salarii','Altele'];
+const AUTO_RULES=[
+  {p:/netopia|payment processor|procesator/i,inc:'Procesator Plăți',exp:null},
+  {p:/capital|aport|majorare|topup/i,inc:'Capital Social',exp:null},
+  {p:/microalpha|software|hosting|server/i,inc:null,exp:'IT'},
+  {p:/notar|avocat|juridic/i,inc:null,exp:'Legal'},
+  {p:/revolut|comision|fee|tarif|abonament revolut/i,inc:null,exp:'Subscriptions'},
+  {p:/salar|payroll/i,inc:null,exp:'Salarii'},
+  {p:/chirie|birou|office/i,inc:null,exp:'Birouri'},
+  {p:/marketing|ads|facebook|google ads/i,inc:null,exp:'Marketing'},
+  {p:/împrumut|imprumut/i,inc:'Altele',exp:null}
+];
+function autoCat(desc,amt){for(const r of AUTO_RULES)if(r.p.test(desc))return amt>=0?{incomeType:r.inc||'Altele',expenseCategory:null}:{incomeType:null,expenseCategory:r.exp||'Altele'};return amt>=0?{incomeType:'Altele',expenseCategory:null}:{incomeType:null,expenseCategory:'Altele'}}
+function parseCSVLine(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"')q=!q;else if(ch===','&&!q){r.push(c.trim());c=''}else c+=ch}r.push(c.trim());return r}
+function parseRevolutCSV(content,sourceId){
+  const lines=content.trim().split('\n');if(lines.length<2)return[];
+  const h=parseCSVLine(lines[0]);
+  const di=h.findIndex(x=>x.includes('Date completed')),dsi=h.findIndex(x=>x==='Description'),ti=h.findIndex(x=>x==='Type'),ai=h.findIndex(x=>x==='Amount');
+  if(di<0||dsi<0||ti<0||ai<0)throw new Error('CSV invalid — lipsa coloane Date completed/Description/Type/Amount');
+  const tx=[];
+  for(let i=1;i<lines.length;i++){
+    const p=parseCSVLine(lines[i]);if(p.length<=Math.max(di,dsi,ti,ai))continue;
+    const d=p[di],desc=p[dsi],t=p[ti],a=parseFloat(p[ai].replace(',','.'));
+    if(!d||!desc||isNaN(a))continue;
+    const cat=autoCat(desc,a);
+    tx.push({id:`csv_${sourceId}_${i}`,date:d.split(' ')[0],description:desc,type:t,amount:a,...cat,sourceId});
+  }
+  return tx;
+}
+function UploadTab({data,onUpdateBankTx,onUpdateSources,showExcluded,setShowExcluded}){
+  const[sources,setSources]=useState(data.sources||[{id:'gs',name:'Google Sheets (Incasari)',type:'google-sheets',active:true,deletable:false}]);
+  const[bankTx,setBankTx]=useState(data.bankTx||data.bankStatement||[]);
+  const[dragOver,setDragOver]=useState(false);
+  const[msg,setMsg]=useState('');
+  useEffect(()=>{setSources(data.sources||[{id:'gs',name:'Google Sheets (Incasari)',type:'google-sheets',active:true,deletable:false}])},[data.sources]);
+  useEffect(()=>{const tx=data.bankTx||data.bankStatement||[];if(tx.length>0)setBankTx(tx)},[data.bankTx,data.bankStatement]);
+  const fRef=useRef(null);
+  const doUpload=async(file)=>{
+    try{
+      const text=await file.text();
+      const sid='csv_'+Date.now();
+      const newTx=parseRevolutCSV(text,sid);
+      const newSrc={id:sid,name:file.name,type:'bank-statement',active:true,deletable:true,uploadDate:new Date().toISOString().split('T')[0]};
+      const updSrc=[...sources,newSrc];const updTx=[...bankTx,...newTx];
+      setSources(updSrc);setBankTx(updTx);
+      if(onUpdateSources)onUpdateSources(updSrc);
+      if(onUpdateBankTx)onUpdateBankTx(updTx);
+      setMsg('Uploaded '+newTx.length+' tranzactii din '+file.name);
+      setTimeout(()=>setMsg(''),4000);
+    }catch(e){setMsg('Eroare: '+e.message)}
+  };
+  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);const f=e.dataTransfer.files[0];if(f&&f.name.endsWith('.csv'))doUpload(f)};
+  const handleDelete=(id)=>{const fs=sources.filter(x=>x.id!==id);const ft=bankTx.filter(x=>x.sourceId!==id);setSources(fs);setBankTx(ft);if(onUpdateSources)onUpdateSources(fs);if(onUpdateBankTx)onUpdateBankTx(ft)};
+  const handleToggle=(id)=>{const upd=sources.map(x=>x.id===id?{...x,active:!x.active}:x);setSources(upd);if(onUpdateSources)onUpdateSources(upd)};
+  const updateTx=(id,field,val)=>{const upd=bankTx.map(x=>x.id===id?{...x,[field]:val}:x);setBankTx(upd);if(onUpdateBankTx)onUpdateBankTx(upd)};
+  const toggleExclude=(id)=>{updateTx(id,'excluded',!bankTx.find(t=>t.id===id)?.excluded)};
+  const displayedTx=showExcluded?bankTx:bankTx.filter(t=>!t.excluded);
+  return(<div className="fade">
+    {msg&&<div style={{padding:12,background:'rgba(16,185,129,.1)',color:C.green,borderRadius:8,marginBottom:16,fontSize:'.82rem',fontWeight:500}}>{msg}</div>}
+    <div className="card" style={{marginBottom:18}}>
+      <div style={{fontWeight:600,marginBottom:14}}>Data Sources</div>
+      {sources.map(s=><div key={s.id} className={'source-card'+(s.active?' active':'')} >
+        <div style={{flex:1}}>
+          <div style={{fontSize:'.82rem',fontWeight:600}}>{s.name}</div>
+          <div style={{fontSize:'.72rem',color:'var(--t3)',marginTop:2}}>
+            <span className={s.type==='google-sheets'?'bb':'bp'} style={{marginRight:6}}>{s.type==='google-sheets'?'Google Sheets':'Bank Statement'}</span>
+            {s.uploadDate&&<span>{s.uploadDate}</span>}
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <button className="btn-o" onClick={()=>handleToggle(s.id)} style={{fontSize:'.7rem',padding:'4px 10px',borderColor:s.active?C.green:'var(--brd)',color:s.active?C.green:'var(--t3)'}}>{s.active?'ON':'OFF'}</button>
+          {s.deletable&&<button className="btn-red" onClick={()=>handleDelete(s.id)} style={{padding:'4px 10px',fontSize:'.7rem'}}>Sterge</button>}
+        </div>
+      </div>)}
+    </div>
+    <div className="card" style={{marginBottom:18}}>
+      <div style={{fontWeight:600,marginBottom:14}}>Upload CSV</div>
+      <div className={'upload-zone'+(dragOver?' drag-over':'')} onDrop={handleDrop} onDragOver={e=>{e.preventDefault();setDragOver(true)}} onDragLeave={()=>setDragOver(false)} onClick={()=>fRef.current?.click()}>
+        <div style={{fontSize:'.88rem',fontWeight:600,marginBottom:6}}>Drag and drop CSV aici</div>
+        <div style={{fontSize:'.78rem',color:'var(--t3)'}}>sau click pentru a selecta fisierul</div>
+        <div style={{fontSize:'.72rem',color:'var(--t3)',marginTop:8}}>Format suportat: Revolut Business CSV</div>
+        <input ref={fRef} type="file" accept=".csv" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)doUpload(f)}}/>
+      </div>
+    </div>
+    {bankTx.length>0&&<div className="card">
+      <div style={{fontWeight:600,marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>Bank Transactions ({bankTx.length})</span>
+        <button className="btn-o" onClick={()=>setShowExcluded(!showExcluded)} style={{fontSize:'.76rem',padding:'5px 12px'}}>
+          {showExcluded?'Ascunde excluse':'Arată excluse'}
+        </button>
+      </div>
+      <div style={{overflowX:'auto'}}>
+        <table><thead><tr><th>Data</th><th>Descriere</th><th>Tip</th><th style={{textAlign:'right'}}>Suma</th><th>Income Type</th><th>Expense Cat.</th><th>Sursa</th><th>Acțiuni</th></tr></thead>
+          <tbody>{displayedTx.map(t=><tr key={t.id||t.date+t.description} className={t.excluded?'excluded-row':''}>
+            <td style={{fontSize:'.76rem',color:'var(--t3)'}}>{t.date}</td>
+            <td style={{maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.description}</td>
+            <td><span className={t.amount>=0?'bg':'br'}>{t.type}</span></td>
+            <td style={{textAlign:'right',fontWeight:600,color:t.amount>=0?C.green:C.red}}>{t.amount>=0?'+':''}{ff(t.amount)}</td>
+            <td>{t.amount>=0?<select className="cat-sel" value={t.incomeType||''} onChange={e=>updateTx(t.id,'incomeType',e.target.value)}>
+              <option value="">—</option>{INCOME_TYPES.map(it=><option key={it} value={it}>{it}</option>)}
+            </select>:'—'}</td>
+            <td>{t.amount<0?<select className="cat-sel" value={t.expenseCategory||t.category||''} onChange={e=>updateTx(t.id,'expenseCategory',e.target.value)}>
+              <option value="">—</option>{EXPENSE_CATS.map(ec=><option key={ec} value={ec}>{ec}</option>)}
+            </select>:'—'}</td>
+            <td><span className="bb" style={{fontSize:'.68rem'}}>{sources.find(s=>s.id===t.sourceId)?.name||'Default'}</span></td>
+            <td><button className={`btn-o`} onClick={()=>toggleExclude(t.id)} style={{fontSize:'.7rem',padding:'3px 8px',borderColor:t.excluded?'var(--red)':'var(--brd)',color:t.excluded?'var(--red)':'var(--t3)'}}>{t.excluded?'Includi':'Exclude'}</button></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </div>}
+  </div>)
+}
+class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={hasError:false}}
+  static getDerivedStateFromError(error){return{hasError:true}}
+  componentDidCatch(error,errorInfo){}
+  render(){if(this.state.hasError)return <div style={{padding:'40px',color:'var(--red)',background:'var(--bg)'}}>Eroare in componenta. Verifica consola.</div>;return this.props.children}
+}
+function App(){
+  const saved=useMemo(()=>{try{return JSON.parse(localStorage.getItem('microalpha_v10')||'{}')}catch(e){return{}}},[]);
+  const[auth,setAuth]=useState(saved.auth||false);
+  const[tab,setTab]=useState(saved.tab||'overview');
+  const[data,setData]=useState(saved.data||DEFAULT_DATA);
+  const[config,setConfig]=useState(saved.config||{scriptUrl:'',token:''});
+  const[cs,setCs]=useState(saved.cs||'disconnected');
+  const[lr,setLr]=useState(new Date());
+  const[ar,setAr]=useState(saved.ar||false);
+  const[showExcl,setShowExcl]=useState(saved.showExcl!==undefined?saved.showExcl:true);
+  const[auditModal,setAuditModal]=useState(null);
+  const enriched=useMemo(()=>{
+    const d=integrateExpenses(data);
+    d.renewals=computeRenewals(d);
+    return d;
+  },[data]);
+  const audits=useMemo(()=>computeAudit(enriched),[enriched]);
+  const openA=(k)=>{if(audits[k])setAuditModal(audits[k])};
+  useEffect(()=>{
+    try{localStorage.setItem('microalpha_v10',JSON.stringify({auth,tab,data,config,cs,ar,showExcl}))}catch(e){}
+  },[auth,tab,data,config,cs,ar,showExcl]);
+  const connect=useCallback(async()=>{
+    if(!config.scriptUrl||!config.token){alert('Completeaza URL-ul si token-ul');return}
+    setCs('loading');
+    try{const nd=await fetchAppsScript(config.scriptUrl,config.token);if(nd.months.length>0){setData(p=>({...p,months:nd.months}));setCs('connected');setLr(new Date())}else setCs('error')}
+    catch(e){console.error(e);setCs('error')}
+  },[config]);
+  useEffect(()=>{if(!ar||cs!=='connected')return;const iv=setInterval(connect,5*60*1000);return()=>clearInterval(iv)},[ar,cs,connect]);
+  if(!auth)return <LoginScreen onLogin={setAuth}/>;
+  const tabs=[{id:'overview',label:'Overview'},{id:'revenue',label:'Revenue'},{id:'subscribers',label:'Subscribers'},{id:'renewals',label:'Renewals'},{id:'audit',label:'Audit',isAudit:true},{id:'pnl',label:'P&L'},{id:'cashflow',label:'Cashflow'},{id:'upload',label:'Upload (Data)'}];
+  return(<div style={{minHeight:'100vh',padding:'0 24px 40px'}}>
+    {auditModal&&<AuditModal audit={auditModal} onClose={()=>setAuditModal(null)}/>}
+    <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 0',borderBottom:'1px solid var(--brd)',marginBottom:22}}>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="url(#lg3)"/><defs><linearGradient id="lg3" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#3b82f6"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs><path d="M8 22V14l4-4 4 4v8M20 22V10l4-4v16" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div><div style={{fontSize:'1.2rem',fontWeight:800}}>Microalpha<span style={{color:C.blue}}> AI</span></div><div style={{fontSize:'.72rem',color:'var(--t3)'}}>Dashboard v10 — Securizat</div></div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <div style={{fontSize:'.72rem',color:'var(--t3)',textAlign:'right'}}><div>Actualizat</div><div style={{color:'var(--t2)',fontWeight:500}}>{lr.toLocaleString('ro-RO')}</div></div>
+        {cs==='connected'&&<button className="btn-o" onClick={()=>setAr(!ar)} style={{fontSize:'.72rem',borderColor:ar?C.green:'var(--brd)',color:ar?C.green:'var(--t3)'}}>{ar?'⟳ Auto ON':'Auto OFF'}</button>}
+        <button className="btn-o" onClick={connect} style={{fontSize:'.72rem'}}>⟳ Refresh</button>
+        <Settings config={config} setConfig={setConfig} onConnect={connect} status={cs}/>
+        <button className="btn-red" onClick={()=>setAuth(false)} title="Deconectare">&#x2715; Logout</button>
+      </div>
+    </header>
+    <nav style={{display:'flex',gap:0,borderBottom:'1px solid var(--brd)',marginBottom:22}}>
+      {tabs.map(t=><button key={t.id} className={`tab-btn ${tab===t.id?'active':''} ${t.isAudit?'audit-tab':''}`} onClick={()=>setTab(t.id)}>{t.isAudit&&'⚑ '}{t.label}</button>)}
+    </nav>
+    {tab==='overview'&&<OverviewTab data={enriched} oA={openA}/>}
+    {tab==='revenue'&&<RevenueTab data={enriched} oA={openA}/>}
+    {tab==='subscribers'&&<SubscribersTab data={enriched} oA={openA}/>}
+    {tab==='renewals'&&<RenewalsTab data={enriched} oA={openA} audits={audits}/>}
+    {tab==='audit'&&<AuditTab audits={audits} openA={openA}/>}
+    {tab==='pnl'&&<PLTab data={enriched} oA={openA}/>}
+    {tab==='cashflow'&&<CashflowTab data={enriched} oA={openA}/>}
+    {tab==='upload'&&<UploadTab data={data} onUpdateBankTx={(tx)=>setData(prev=>({...prev,bankTx:tx,bankStatement:tx}))} onUpdateSources={(src)=>setData(prev=>({...prev,sources:src}))} showExcluded={showExcl} setShowExcluded={setShowExcl}/>}
+    <footer style={{marginTop:36,padding:'14px 0',borderTop:'1px solid var(--brd)',display:'flex',justifyContent:'space-between'}}>
+      <div style={{fontSize:'.68rem',color:'var(--t3)'}}>Microalpha v10 — Apps Script Proxy (sheet privat)</div>
+      <div style={{fontSize:'.68rem',color:'var(--t3)'}}>{cs==='connected'?<span style={{color:C.green}}>&#x25CF; Live securizat</span>:<span>&#x25CB; Date locale</span>}</div>
+    </footer>
+  </div>);
+}
+ReactDOM.render(<ErrorBoundary><App/></ErrorBoundary>,document.getElementById('root'));
+</script>
+</body>
+</html>
